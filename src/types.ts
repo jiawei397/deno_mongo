@@ -20,6 +20,8 @@ export interface ConnectOptions {
   servers: Server[];
   retryWrites?: boolean;
   appname?: string;
+
+  multi?: boolean; // 同一服务重复连接
 }
 
 export interface CountOptions {

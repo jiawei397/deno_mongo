@@ -13,6 +13,36 @@ export class MongoClient {
   // cache db
   #dbCache = new Map();
 
+  #connectionCache = new Map();
+
+  connectDB(
+    options: ConnectOptions,
+  ): Promise<Database> {
+    const cacheKey = JSON.stringify(options.servers);
+    if (!options.multi) { // singleton
+      if (this.#connectionCache.has(cacheKey)) {
+        return this.#connectionCache.get(cacheKey);
+      }
+    }
+    console.count("connectDB");
+    let cluster: Cluster;
+    const promise = Promise.resolve().then(() => {
+      cluster = new Cluster(options);
+      return cluster.connect();
+    }).then(() => {
+      return cluster.authenticate();
+    }).then(() => {
+      return cluster.updateMaster();
+    }).then(() => {
+      this.#cluster = cluster;
+      return this.database(options.db);
+    });
+    if (!options.multi) {
+      this.#connectionCache.set(cacheKey, promise);
+    }
+    return promise;
+  }
+
   async connect(
     options: ConnectOptions | string,
   ): Promise<Database> {
@@ -20,15 +50,10 @@ export class MongoClient {
       const parsedOptions = typeof options === "string"
         ? await parse(options)
         : options;
-      const cluster = new Cluster(parsedOptions);
-      await cluster.connect();
-      await cluster.authenticate();
-      await cluster.updateMaster();
-      this.#cluster = cluster;
+      return await this.connectDB(parsedOptions);
     } catch (e) {
       throw new MongoError(`Connection failed: ${e.message || e}`);
     }
-    return this.database((options as ConnectOptions).db);
   }
 
   async listDatabases(options?: {
