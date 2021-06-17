@@ -15,6 +15,16 @@ export default function connectTests() {
     client.close();
   });
 
+  Deno.test("test singleton connect", async () => {
+    const client = new MongoClient();
+    const promise1 = client.connect(`mongodb://${hostname}:${port}`);
+    const promise2 = client.connect(`mongodb://${hostname}:${port}`);
+    await promise1;
+    await promise2;
+    assert(client.connectedCount == 1, "the same connect is singleton");
+    client.close();
+  });
+
   Deno.test("testconnect With Options", async () => {
     const client = new MongoClient();
     await client.connect({

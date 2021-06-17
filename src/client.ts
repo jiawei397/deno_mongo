@@ -15,6 +15,8 @@ export class MongoClient {
 
   #connectionCache = new Map();
 
+  public connectedCount = 0;
+
   async connectDB(
     options: ConnectOptions,
   ): Promise<Database> {
@@ -34,15 +36,12 @@ export class MongoClient {
         ? await parse(options)
         : options;
       const cacheKey = JSON.stringify(parsedOptions.servers);
-      if (!parsedOptions.multi) { // singleton
-        if (this.#connectionCache.has(cacheKey)) {
-          return this.#connectionCache.get(cacheKey);
-        }
+      if (this.#connectionCache.has(cacheKey)) {
+        return this.#connectionCache.get(cacheKey);
       }
       const promise = this.connectDB(parsedOptions);
-      if (!parsedOptions.multi) {
-        this.#connectionCache.set(cacheKey, promise);
-      }
+      this.connectedCount++;
+      this.#connectionCache.set(cacheKey, promise);
       return promise;
     } catch (e) {
       throw new MongoError(`Connection failed: ${e.message || e}`);
@@ -83,8 +82,12 @@ export class MongoClient {
   }
 
   close() {
-    if (this.#cluster) this.#cluster.close();
+    if (this.#cluster) {
+      this.#cluster.close();
+    }
     this.#dbCache.clear();
+    this.#connectionCache.clear();
+    this.connectedCount = 0;
   }
 
   get version() {
