@@ -8,7 +8,8 @@ import { MongoClient } from "../../src/client.ts";
 import { testWithClient } from "../common.ts";
 import { assert, assertEquals } from "../test.deps.ts";
 
-const hostname = "127.0.0.1";
+const hostname = "192.168.21.176";
+const port = 27018;
 
 interface PasswordValid {
   username: string;
@@ -133,7 +134,7 @@ export default function authTests() {
     var password = "y3mq3mpZ3J6PGfgg";
     const client = new MongoClient();
     await client.connect(
-      `mongodb://${username}:${password}@${hostname}:27017/test`,
+      `mongodb://${username}:${password}@${hostname}:${port}/test`,
     );
     const names = await client.listDatabases();
     assert(names instanceof Array);
@@ -146,7 +147,7 @@ export default function authTests() {
     var password = "Qa6WkQSuXF425sWZ";
     const client = new MongoClient();
     await client.connect(
-      `mongodb://${username}:${password}@${hostname}:27017/test`,
+      `mongodb://${username}:${password}@${hostname}:${port}/test`,
     );
     const names = await client.listDatabases();
     assert(names instanceof Array);

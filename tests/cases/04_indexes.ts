@@ -27,11 +27,12 @@ export default function indexesTests() {
     const users = db.collection("mongo_test_users");
     const cursor = users.listIndexes();
     const indexes = await cursor.toArray();
+    console.log(indexes);
     assertEquals(
       indexes,
       [
-        { v: 2, key: { _id: 1 }, name: "_id_", ns: "test.mongo_test_users" },
-        { v: 2, key: { name: 1 }, name: "_name", ns: "test.mongo_test_users" },
+        { v: 2, key: { _id: 1 }, name: "_id_" },
+        { v: 2, key: { name: 1 }, name: "_name" },
       ],
     );
   });

@@ -1,6 +1,6 @@
 import { MongoClient } from "../mod.ts";
 
-const hostname = "127.0.0.1";
+const hostname = "192.168.21.176";
 
 export function testWithClient(
   name: string,
@@ -15,6 +15,6 @@ export function testWithClient(
 
 async function getClient(): Promise<MongoClient> {
   const client = new MongoClient();
-  await client.connect(`mongodb://${hostname}:27017`);
+  await client.connect(`mongodb://${hostname}:27018`);
   return client;
 }
