@@ -10,6 +10,9 @@ const DENO_DRIVER_VERSION = "0.0.1";
 export class MongoClient {
   #cluster?: Cluster;
 
+  // cache db
+  #dbCache = new Map();
+
   async connect(
     options: ConnectOptions | string,
   ): Promise<Database> {
@@ -53,10 +56,20 @@ export class MongoClient {
 
   database(name: string): Database {
     assert(this.#cluster);
-    return new Database(this.#cluster, name);
+    if (this.#dbCache.has(name)) {
+      return this.#dbCache.get(name);
+    }
+    const db = new Database(this.#cluster, name);
+    this.#dbCache.set(name, db);
+    return db;
   }
 
   close() {
     if (this.#cluster) this.#cluster.close();
+    this.#dbCache.clear();
+  }
+
+  get version() {
+    return DENO_DRIVER_VERSION;
   }
 }
