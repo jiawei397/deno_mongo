@@ -1,10 +1,9 @@
 // deno run -A --unstable tests/cases/20_schema.ts
-import { Schema } from "../../src/shema.ts";
+import { Schema } from "../../src/schema.ts";
 import { Document, MongoHookMethod } from "../../src/types.ts";
-import { getDB, Prop, getModel } from "../../src/utils/helper.ts";
+import { getDB, getModel, Prop } from "../../src/utils/helper.ts";
 
 const db = await getDB("mongodb://192.168.21.176:27018/auth-test");
-
 
 class User extends Schema {
   @Prop()
@@ -42,16 +41,15 @@ class User extends Schema {
     required: true,
   })
   username!: string;
-
 }
 
 User.pre(MongoHookMethod.update, function () {
-  console.log('----pre----');
-})
+  console.log("----pre----");
+});
 
 User.pre(MongoHookMethod.update, function () {
-  console.log('----pre2----');
-})
+  console.log("----pre2----");
+});
 
 const model = await getModel(db, User);
 
@@ -68,15 +66,15 @@ const model = await getModel(db, User);
 //   "modifyTime": "2021-01-12T07:37:45.527Z",
 // });
 
-const res = await model.findByIdAndUpdate('6045dc4af353e8be57d6a718', {
-    $set: {
-      // "groups": [
-      //   "aaa",
-      //   "bbb",
-      // ],
-      "name": "jw2"
-    }
+const res = await model.findByIdAndUpdate("6045dc4af353e8be57d6a718", {
+  $set: {
+    // "groups": [
+    //   "aaa",
+    //   "bbb",
+    // ],
+    "name": "jw2",
+  },
 }, {
-  new: true
+  new: true,
 });
 console.log(res);

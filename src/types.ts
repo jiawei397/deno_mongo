@@ -508,15 +508,13 @@ export interface CreateIndexOptions {
 
 export type Constructor = new (...args: any[]) => any;
 
-
 export enum MongoHookMethod {
   create,
   update,
   delete,
-  find
+  find,
 }
 
 export type MongoHookCallback = (...args: any[]) => void;
 
 export type Hooks = Map<MongoHookMethod, MongoHookCallback[]>;
-

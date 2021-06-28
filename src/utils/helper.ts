@@ -2,11 +2,10 @@ import { yellow } from "../../deps.ts";
 import { MongoClient } from "../client.ts";
 import { Collection } from "../collection/collection.ts";
 import { Database } from "../database.ts";
-import { SchemaCls } from "../shema.ts";
+import { SchemaCls } from "../schema.ts";
 import { Constructor } from "../types.ts";
 
 export const TYPE_METADATA_KEY = "design:type";
-
 
 let connectedPromise: Promise<any>;
 const client = new MongoClient();

@@ -2,7 +2,7 @@ import { Collection } from "./collection/mod.ts";
 import { CommandCursor } from "./protocol/mod.ts";
 import { CreateUserOptions, Document } from "./types.ts";
 import { Cluster } from "./cluster.ts";
-import { SchemaCls } from "./shema.ts";
+import { SchemaCls } from "./schema.ts";
 
 interface ListCollectionsReponse {
   cursor: {

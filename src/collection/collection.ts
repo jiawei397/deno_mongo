@@ -1,6 +1,6 @@
-import {Bson} from "../../deps.ts";
-import {WireProtocol} from "../protocol/mod.ts";
-import {SchemaCls} from "../shema.ts";
+import { Bson } from "../../deps.ts";
+import { WireProtocol } from "../protocol/mod.ts";
+import { SchemaCls } from "../schema.ts";
 import {
   CountOptions,
   CreateIndexOptions,
@@ -13,11 +13,10 @@ import {
   MongoHookMethod,
   UpdateOptions,
 } from "../types.ts";
-import {AggregateCursor} from "./commands/aggregate.ts";
-import {FindCursor} from "./commands/find.ts";
-import {ListIndexesCursor} from "./commands/listIndexes.ts";
-import {update} from "./commands/update.ts";
-
+import { AggregateCursor } from "./commands/aggregate.ts";
+import { FindCursor } from "./commands/find.ts";
+import { ListIndexesCursor } from "./commands/listIndexes.ts";
+import { update } from "./commands/update.ts";
 
 export class Collection<T> {
   #protocol: WireProtocol;
@@ -25,10 +24,10 @@ export class Collection<T> {
   #schema: SchemaCls | undefined;
 
   constructor(
-      protocol: WireProtocol,
-      dbName: string,
-      readonly name: string,
-      schema?: SchemaCls,
+    protocol: WireProtocol,
+    dbName: string,
+    readonly name: string,
+    schema?: SchemaCls,
   ) {
     this.#protocol = protocol;
     this.#dbName = dbName;
@@ -46,8 +45,8 @@ export class Collection<T> {
   }
 
   async findOne(
-      filter?: Document,
-      options?: FindOptions,
+    filter?: Document,
+    options?: FindOptions,
   ): Promise<T | undefined> {
     const cursor = this.find(filter, options);
     return await cursor.next();
@@ -59,7 +58,7 @@ export class Collection<T> {
       query: filter,
       ...options,
     });
-    const {n, ok} = res;
+    const { n, ok } = res;
     if (ok === 1) {
       return n;
     } else {
@@ -68,7 +67,7 @@ export class Collection<T> {
   }
 
   async insertOne(doc: Document, options?: InsertOptions) {
-    const {insertedIds} = await this.insertMany([doc], options);
+    const { insertedIds } = await this.insertMany([doc], options);
     return insertedIds[0];
   }
 
@@ -85,7 +84,7 @@ export class Collection<T> {
 
     const fns = this.#schema.getPreHookByMethod(MongoHookMethod.create);
     if (fns) {
-      await Promise.all(fns.map(fn => fn(docs)));
+      await Promise.all(fns.map((fn) => fn(docs)));
     }
 
     const data = this.#schema.getMeta();
@@ -107,13 +106,13 @@ export class Collection<T> {
     }
     const fns = this.#schema.getPostHookByMethod(MongoHookMethod.create);
     if (fns) {
-      await Promise.all(fns.map(fn => fn(docs)));
+      await Promise.all(fns.map((fn) => fn(docs)));
     }
   }
 
   async insertMany(
-      docs: Document[],
-      options?: InsertOptions,
+    docs: Document[],
+    options?: InsertOptions,
   ): Promise<{ insertedIds: Document[]; insertedCount: number }> {
     const insertedIds = docs.map((doc) => {
       if (!doc._id) {
@@ -132,9 +131,9 @@ export class Collection<T> {
       bypassDocumentValidation: options?.bypassDocumentValidation,
       comment: options?.comment,
     });
-    const {writeErrors} = res;
+    const { writeErrors } = res;
     if (writeErrors) {
-      const [{errmsg}] = writeErrors;
+      const [{ errmsg }] = writeErrors;
       throw new Error(errmsg);
     }
     await this.afterInsert(docs);
@@ -144,14 +143,22 @@ export class Collection<T> {
     };
   }
 
-  async findByIdAndUpdate(id: string, update: Document, options?: UpdateOptions) {
+  async findByIdAndUpdate(
+    id: string,
+    update: Document,
+    options?: UpdateOptions,
+  ) {
     const filter = {
-      _id: new Bson.ObjectID(id)
+      _id: new Bson.ObjectID(id),
     };
     return this.findOneAndUpdate(filter, update, options);
   }
 
-  async findOneAndUpdate(filter: Document, update: Document, options?: UpdateOptions) {
+  async findOneAndUpdate(
+    filter: Document,
+    update: Document,
+    options?: UpdateOptions,
+  ) {
     const res = await this.updateOne(filter, update, options);
     if (options?.new) {
       if (res.matchedCount > 0) {
@@ -181,23 +188,31 @@ export class Collection<T> {
     };
   }
 
-  private async preUpdate(filter: Document, doc: Document, options?: UpdateOptions) {
+  private async preUpdate(
+    filter: Document,
+    doc: Document,
+    options?: UpdateOptions,
+  ) {
     if (!this.#schema) {
       return;
     }
     const fns = this.#schema.getPreHookByMethod(MongoHookMethod.update);
     if (fns) {
-      await Promise.all(fns.map(fn => fn(filter, doc, options)));
+      await Promise.all(fns.map((fn) => fn(filter, doc, options)));
     }
   }
 
-  private async afterUpdate(filter: Document, doc: Document, options?: UpdateOptions) {
+  private async afterUpdate(
+    filter: Document,
+    doc: Document,
+    options?: UpdateOptions,
+  ) {
     if (!this.#schema) {
       return;
     }
     const fns = this.#schema.getPostHookByMethod(MongoHookMethod.update);
     if (fns) {
-      await Promise.all(fns.map(fn => fn(filter, doc, options)));
+      await Promise.all(fns.map((fn) => fn(filter, doc, options)));
     }
   }
 
@@ -206,10 +221,17 @@ export class Collection<T> {
       filter._id = new Bson.ObjectID(filter._id);
     }
     await this.preUpdate(filter, doc, options);
-    const res = await update(this.#protocol, this.#dbName, this.name, filter, doc, {
-      ...options,
-      multi: options?.multi ?? true,
-    });
+    const res = await update(
+      this.#protocol,
+      this.#dbName,
+      this.name,
+      filter,
+      doc,
+      {
+        ...options,
+        multi: options?.multi ?? true,
+      },
+    );
     await this.afterUpdate(filter, doc, options);
     return res;
   }
@@ -235,7 +257,7 @@ export class Collection<T> {
   delete = this.deleteMany;
 
   async deleteOne(filter: Document, options?: DeleteOptions) {
-    return this.delete(filter, {...options, limit: 1});
+    return this.delete(filter, { ...options, limit: 1 });
   }
 
   async drop(options?: DropOptions): Promise<void> {
@@ -246,7 +268,7 @@ export class Collection<T> {
   }
 
   async distinct(key: string, query?: Document, options?: DistinctOptions) {
-    const {values} = await this.#protocol.commandSingle(this.#dbName, {
+    const { values } = await this.#protocol.commandSingle(this.#dbName, {
       distinct: this.name,
       key,
       query,
@@ -279,7 +301,9 @@ export class Collection<T> {
   }
 
   listIndexes() {
-    return new ListIndexesCursor<{ v: number; key: Document; name: string; ns: string }>({
+    return new ListIndexesCursor<
+      { v: number; key: Document; name: string; ns: string }
+    >({
       protocol: this.#protocol,
       dbName: this.#dbName,
       collectionName: this.name,

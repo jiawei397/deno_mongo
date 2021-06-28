@@ -12,7 +12,11 @@ export class Schema {
     return this.hook(this.postHooks, method, callback);
   }
 
-  static hook(hooks: Hooks, method: MongoHookMethod, callback: MongoHookCallback) {
+  static hook(
+    hooks: Hooks,
+    method: MongoHookMethod,
+    callback: MongoHookCallback,
+  ) {
     let arr = hooks.get(method);
     if (!arr) {
       arr = [];
@@ -26,11 +30,15 @@ export class Schema {
     return getMetadata(TYPE_METADATA_KEY, this);
   }
 
-  static getPreHookByMethod(method: MongoHookMethod): MongoHookCallback[] | undefined {
+  static getPreHookByMethod(
+    method: MongoHookMethod,
+  ): MongoHookCallback[] | undefined {
     return this.preHooks.get(method);
   }
 
-  static getPostHookByMethod(method: MongoHookMethod): MongoHookCallback[] | undefined {
+  static getPostHookByMethod(
+    method: MongoHookMethod,
+  ): MongoHookCallback[] | undefined {
     return this.postHooks.get(method);
   }
 }

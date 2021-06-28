@@ -1,4 +1,7 @@
-# deno_mongo
+# deno_mongo_schema
+
+forked from **[deno_mongo](https://deno.land/x/mongo)**, support shema and
+extend some API.
 
 > **deno_mongo** is a **MongoDB** database driver developed for deno
 
