@@ -143,6 +143,36 @@ export class Collection<T> {
     };
   }
 
+  private async preFindOneAndUpdate(
+    filter: Document,
+    update: Document,
+    options?: UpdateOptions,
+  ) {
+    if (!this.#schema) {
+      return;
+    }
+    const fns = this.#schema.getPreHookByMethod(
+      MongoHookMethod.findOneAndUpdate,
+    );
+    if (fns) {
+      await Promise.all(fns.map((fn) => fn(filter, update, options)));
+    }
+  }
+
+  private async afterFindOneAndUpdate(
+    doc: Document,
+  ) {
+    if (!this.#schema) {
+      return;
+    }
+    const fns = this.#schema.getPostHookByMethod(
+      MongoHookMethod.findOneAndUpdate,
+    );
+    if (fns) {
+      await Promise.all(fns.map((fn) => fn(doc)));
+    }
+  }
+
   async findByIdAndUpdate(
     id: string,
     update: Document,
@@ -159,10 +189,15 @@ export class Collection<T> {
     update: Document,
     options?: UpdateOptions,
   ) {
+    await this.preFindOneAndUpdate(filter, update, options);
     const res = await this.updateOne(filter, update, options);
     if (options?.new) {
       if (res.matchedCount > 0) {
-        return this.findOne(filter);
+        const updatedDoc = await this.findOne(filter);
+        if (updatedDoc) {
+          await this.afterFindOneAndUpdate(updatedDoc);
+        }
+        return updatedDoc;
       } else {
         return null;
       }

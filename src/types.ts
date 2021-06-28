@@ -513,6 +513,7 @@ export enum MongoHookMethod {
   update,
   delete,
   find,
+  findOneAndUpdate,
 }
 
 export type MongoHookCallback = (...args: any[]) => void;

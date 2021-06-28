@@ -47,8 +47,8 @@ User.pre(MongoHookMethod.update, function () {
   console.log("----pre----");
 });
 
-User.pre(MongoHookMethod.update, function () {
-  console.log("----pre2----");
+User.post(MongoHookMethod.findOneAndUpdate, function (doc) {
+  console.log("----post----", doc);
 });
 
 const model = await getModel(db, User);
@@ -66,7 +66,7 @@ const model = await getModel(db, User);
 //   "modifyTime": "2021-01-12T07:37:45.527Z",
 // });
 
-const res = await model.findByIdAndUpdate("6045dc4af353e8be57d6a718", {
+await model.findByIdAndUpdate("6045dc4af353e8be57d6a718", {
   $set: {
     // "groups": [
     //   "aaa",
@@ -77,4 +77,4 @@ const res = await model.findByIdAndUpdate("6045dc4af353e8be57d6a718", {
 }, {
   new: true,
 });
-console.log(res);
+// console.log(res);
