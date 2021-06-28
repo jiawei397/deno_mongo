@@ -1,5 +1,6 @@
 import { Bson } from "../../deps.ts";
 import { WireProtocol } from "../protocol/mod.ts";
+import { SchemaCls } from "../shema.ts";
 import {
   CountOptions,
   CreateIndexOptions,
@@ -9,6 +10,7 @@ import {
   DropOptions,
   FindOptions,
   InsertOptions,
+  MongoHookMethod,
   UpdateOptions,
 } from "../types.ts";
 import { AggregateCursor } from "./commands/aggregate.ts";
@@ -16,13 +18,21 @@ import { FindCursor } from "./commands/find.ts";
 import { ListIndexesCursor } from "./commands/listIndexes.ts";
 import { update } from "./commands/update.ts";
 
+
 export class Collection<T> {
   #protocol: WireProtocol;
   #dbName: string;
+  #schema: SchemaCls | undefined;
 
-  constructor(protocol: WireProtocol, dbName: string, readonly name: string) {
+  constructor(
+    protocol: WireProtocol,
+    dbName: string,
+    readonly name: string,
+    schema?: SchemaCls,
+  ) {
     this.#protocol = protocol;
     this.#dbName = dbName;
+    this.#schema = schema;
   }
 
   find(filter?: Document, options?: FindOptions): FindCursor<T> {
@@ -67,6 +77,33 @@ export class Collection<T> {
     return this.insertMany(docs as Document[], options);
   }
 
+  // check before insert
+  protected async preInsert(docs: Document[]) {
+    if (!this.#schema) {
+      return;
+    }
+
+    const fns = this.#schema.getPreHookByMethod(MongoHookMethod.create);
+    if (fns) {
+      await Promise.all(fns.map(fn => fn(docs)));
+    }
+
+    const data = this.#schema.getMeta();
+    for (const key in data) {
+      const val = data[key];
+      if (val.required) {
+        docs.forEach((doc) => {
+          if (doc[key] == null) {
+            throw new Error(`${key} is required!`);
+          }
+        });
+      }
+    }
+  }
+
+  protected async afterInsert(docs: Document[]) {
+  }
+
   async insertMany(
     docs: Document[],
     options?: InsertOptions,
@@ -77,6 +114,9 @@ export class Collection<T> {
       }
       return doc._id;
     });
+
+    await this.preInsert(docs);
+
     const res = await this.#protocol.commandSingle(this.#dbName, {
       insert: this.name,
       documents: docs,
@@ -90,6 +130,7 @@ export class Collection<T> {
       const [{ errmsg }] = writeErrors;
       throw new Error(errmsg);
     }
+    await this.afterInsert(docs);
     return {
       insertedIds,
       insertedCount: res.n,

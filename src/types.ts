@@ -497,3 +497,18 @@ export interface CreateIndexOptions {
   /** Optional. A user-provided comment to attach to this command. Once set */
   comment?: Document;
 }
+
+export type Constructor = new (...args: any[]) => any;
+
+
+export enum MongoHookMethod {
+  create,
+  update,
+  delete,
+  find
+}
+
+export type MongoHookCallback = (docs: Document[]) => void;
+
+export type Hooks = Map<MongoHookMethod, MongoHookCallback[]>;
+

@@ -2,6 +2,7 @@ import { Collection } from "./collection/mod.ts";
 import { CommandCursor } from "./protocol/mod.ts";
 import { CreateUserOptions, Document } from "./types.ts";
 import { Cluster } from "./cluster.ts";
+import { SchemaCls } from "./shema.ts";
 
 interface ListCollectionsReponse {
   cursor: {
@@ -29,8 +30,8 @@ export class Database {
     this.#cluster = cluster;
   }
 
-  collection<T>(name: string): Collection<T> {
-    return new Collection(this.#cluster.protocol, this.name, name);
+  collection<T>(name: string, cls?: SchemaCls): Collection<T> {
+    return new Collection(this.#cluster.protocol, this.name, name, cls);
   }
 
   listCollections(options?: {

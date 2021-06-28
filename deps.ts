@@ -12,3 +12,16 @@ export {
   assert,
   assertEquals,
 } from "https://deno.land/std@0.83.0/testing/asserts.ts";
+export {
+  bgBlue,
+  bgRgb24,
+  bgRgb8,
+  blue,
+  bold,
+  green,
+  italic,
+  red,
+  rgb24,
+  rgb8,
+  yellow,
+} from "https://deno.land/std@0.97.0/fmt/colors.ts";
