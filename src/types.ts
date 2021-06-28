@@ -1,5 +1,6 @@
 import { Bson } from "../deps.ts";
 
+// @ts-ignore
 export type Document = Bson.Document;
 
 export interface Server {
@@ -136,6 +137,13 @@ export interface UpdateOptions {
    * Optional. A user-provided comment to attach to this command.
    */
   comment?: Document;
+
+  /**
+   * Optional.
+   *
+   * By default, findOneAndUpdate() returns the document as it was before update was applied. If you set new: true, findOneAndUpdate() will instead give you the object after update was applied.
+   */
+  new?: boolean;
 
   /**
    * optional session to use for this operation
@@ -508,7 +516,7 @@ export enum MongoHookMethod {
   find
 }
 
-export type MongoHookCallback = (docs: Document[]) => void;
+export type MongoHookCallback = (...args: any[]) => void;
 
 export type Hooks = Map<MongoHookMethod, MongoHookCallback[]>;
 
