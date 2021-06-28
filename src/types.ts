@@ -519,3 +519,8 @@ export enum MongoHookMethod {
 export type MongoHookCallback = (...args: any[]) => void;
 
 export type Hooks = Map<MongoHookMethod, MongoHookCallback[]>;
+
+export interface SchemaType {
+  unique?: boolean;
+  required?: boolean;
+}

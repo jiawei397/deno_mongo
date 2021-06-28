@@ -3,7 +3,7 @@ import { MongoClient } from "../client.ts";
 import { Collection } from "../collection/collection.ts";
 import { Database } from "../database.ts";
 import { SchemaCls } from "../schema.ts";
-import { Constructor } from "../types.ts";
+import {Constructor, SchemaType } from "../types.ts";
 
 export const TYPE_METADATA_KEY = "design:type";
 
@@ -85,11 +85,6 @@ type Target = Constructor & {
 };
 
 type TargetInstance = any;
-
-export interface SchemaType {
-  unique?: boolean;
-  required?: boolean;
-}
 
 function addMetadata(
   key: string,
