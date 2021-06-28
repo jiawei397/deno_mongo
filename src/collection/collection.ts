@@ -78,7 +78,7 @@ export class Collection<T> {
   }
 
   // check before insert
-  protected async preInsert(docs: Document[]) {
+  private async preInsert(docs: Document[]) {
     if (!this.#schema) {
       return;
     }
@@ -101,7 +101,14 @@ export class Collection<T> {
     }
   }
 
-  protected async afterInsert(docs: Document[]) {
+  private async afterInsert(docs: Document[]) {
+    if (!this.#schema) {
+      return;
+    }
+    const fns = this.#schema.getPostHookByMethod(MongoHookMethod.create);
+    if (fns) {
+      await Promise.all(fns.map(fn => fn(docs)));
+    }
   }
 
   async insertMany(
