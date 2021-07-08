@@ -62,13 +62,15 @@ export async function initModel<T>(model: Collection<T>, cls: SchemaCls) {
     if (Object.keys(map).length === 0) {
       continue;
     }
-    if (!map.unique) {
+    if (!map.unique && !map.expires && !map.sparse) {
       continue;
     }
     indexes.push({
       name: "_" + key,
       key: { [key]: 1 },
-      ...map,
+      unique: map.unique,
+      sparse: map.sparse,
+      expireAfterSeconds: map.expires,
     });
   }
 

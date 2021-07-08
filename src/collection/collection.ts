@@ -94,7 +94,7 @@ export class Collection<T> {
       docs.forEach((doc) => {
         if (doc[key] === undefined && val.default !== undefined) {
           if (typeof val.default === "function") {
-            if (doc[key] === Date.now) { // means to get a new Date
+            if (val.default === Date.now) { // means to get a new Date
               doc[key] = new Date();
             } else {
               doc[key] = val.default();
