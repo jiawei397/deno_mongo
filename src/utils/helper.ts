@@ -3,7 +3,7 @@ import { MongoClient } from "../client.ts";
 import { Collection } from "../collection/collection.ts";
 import { Database } from "../database.ts";
 import { SchemaCls } from "../schema.ts";
-import {Constructor, SchemaType } from "../types.ts";
+import { Constructor, SchemaType } from "../types.ts";
 
 export const TYPE_METADATA_KEY = "design:type";
 
@@ -58,11 +58,11 @@ export async function initModel<T>(model: Collection<T>, cls: SchemaCls) {
   );
   const indexes = [];
   for (const key in data) {
-    const map = data[key];
+    const map: SchemaType = data[key];
     if (Object.keys(map).length === 0) {
       continue;
     }
-    if (map.unique === undefined) {
+    if (!map.unique) {
       continue;
     }
     indexes.push({
@@ -125,7 +125,7 @@ export class BaseService {
 }
 
 export function logTime(
-  target: Constructor,
+  target: any,
   name: string,
   descriptor: any,
 ) {

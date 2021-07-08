@@ -522,5 +522,9 @@ export type Hooks = Map<MongoHookMethod, MongoHookCallback[]>;
 
 export interface SchemaType {
   unique?: boolean;
-  required?: boolean;
+  required?: boolean | [boolean, string];
+
+  default?: any;
+
+  expires?: number; // seconds
 }

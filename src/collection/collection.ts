@@ -11,6 +11,7 @@ import {
   FindOptions,
   InsertOptions,
   MongoHookMethod,
+  SchemaType,
   UpdateOptions,
 } from "../types.ts";
 import { AggregateCursor } from "./commands/aggregate.ts";
@@ -71,7 +72,7 @@ export class Collection<T> {
     return insertedIds[0];
   }
 
-  async insert(docs: Document | Document[], options?: InsertOptions) {
+  insert(docs: Document | Document[], options?: InsertOptions) {
     docs = Array.isArray(docs) ? docs : [docs];
     return this.insertMany(docs as Document[], options);
   }
@@ -89,14 +90,23 @@ export class Collection<T> {
 
     const data = this.#schema.getMeta();
     for (const key in data) {
-      const val = data[key];
-      if (val.required) {
-        docs.forEach((doc) => {
+      const val: SchemaType = data[key];
+      docs.forEach((doc) => {
+        if (val.default) {
+          doc[key] = val.default;
+        }
+        if (val.required) {
           if (doc[key] == null) {
-            throw new Error(`${key} is required!`);
+            if (Array.isArray(val.required)) {
+              if (val.required[0]) {
+                throw new Error(val.required[1]);
+              }
+            } else {
+              throw new Error(`${key} is required!`);
+            }
           }
-        });
-      }
+        }
+      });
     }
   }
 
@@ -173,7 +183,7 @@ export class Collection<T> {
     }
   }
 
-  async findByIdAndUpdate(
+  findByIdAndUpdate(
     id: string,
     update: Document,
     options?: UpdateOptions,
@@ -182,6 +192,15 @@ export class Collection<T> {
       _id: new Bson.ObjectID(id),
     };
     return this.findOneAndUpdate(filter, update, options);
+  }
+
+  findById(
+    id: string,
+  ) {
+    const filter = {
+      _id: new Bson.ObjectID(id),
+    };
+    return this.findOne(filter);
   }
 
   async findOneAndUpdate(
@@ -291,12 +310,19 @@ export class Collection<T> {
 
   delete = this.deleteMany;
 
-  async deleteOne(filter: Document, options?: DeleteOptions) {
+  deleteOne(filter: Document, options?: DeleteOptions) {
     return this.delete(filter, { ...options, limit: 1 });
   }
 
+  deleteById(id: string) {
+    const filter = {
+      _id: new Bson.ObjectID(id),
+    };
+    return this.deleteOne(filter);
+  }
+
   async drop(options?: DropOptions): Promise<void> {
-    const res = await this.#protocol.commandSingle(this.#dbName, {
+    await this.#protocol.commandSingle(this.#dbName, {
       drop: this.name,
       ...options,
     });
