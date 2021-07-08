@@ -106,6 +106,12 @@ export class Collection<T> {
             }
           }
         }
+        if (val.validate) {
+          const result = val.validate.validator(doc[key]);
+          if (!result) {
+            throw new Error(val.validate.message);
+          }
+        }
       });
     }
   }

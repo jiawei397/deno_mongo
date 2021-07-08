@@ -527,4 +527,9 @@ export interface SchemaType {
   default?: any;
 
   expires?: number; // seconds
+
+  validate?: {
+    validator: (value: any) => boolean;
+    message: string;
+  };
 }
