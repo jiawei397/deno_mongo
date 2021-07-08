@@ -92,8 +92,16 @@ export class Collection<T> {
     for (const key in data) {
       const val: SchemaType = data[key];
       docs.forEach((doc) => {
-        if (val.default) {
-          doc[key] = val.default;
+        if (doc[key] === undefined && val.default !== undefined) {
+          if (typeof val.default === "function") {
+            if (doc[key] === Date.now) { // means to get a new Date
+              doc[key] = new Date();
+            } else {
+              doc[key] = val.default();
+            }
+          } else {
+            doc[key] = val.default;
+          }
         }
         if (val.required) {
           if (doc[key] == null) {
