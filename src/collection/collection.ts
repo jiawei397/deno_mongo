@@ -122,6 +122,8 @@ export class Collection<T> {
     return this.insertMany(docs as Document[], options);
   }
 
+  save = this.insert;
+
   private async preHooks(hook: MongoHookMethod, ...args: any[]) {
     if (!this.#schema) {
       return;
