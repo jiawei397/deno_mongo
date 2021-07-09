@@ -52,6 +52,18 @@ export class Collection<T> {
   }
 
   private async preFind(filter?: Document, options?: FindOptions) {
+    if (filter?._id) {
+      const id = filter._id;
+      if (typeof id === "string") {
+        filter._id = new Bson.ObjectID(id);
+      } else if (Array.isArray(id.$in)) {
+        id.$in = id.$in.map((_id: any) => {
+          if (typeof _id === "string") {
+            return new Bson.ObjectID(_id);
+          }
+        });
+      }
+    }
     await this.preHooks(MongoHookMethod.find, filter, options);
   }
 
