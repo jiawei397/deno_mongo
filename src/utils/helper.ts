@@ -66,7 +66,7 @@ export async function initModel(model: Collection<unknown>, cls: SchemaCls) {
     if (Object.keys(map).length === 0) {
       continue;
     }
-    if (!map.unique && !map.expires && !map.sparse) {
+    if (!map.index && !map.unique && !map.expires && !map.sparse) {
       continue;
     }
     indexes.push({

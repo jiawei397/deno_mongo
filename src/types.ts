@@ -525,6 +525,8 @@ export type Hooks = Map<MongoHookMethod, MongoHookCallback[]>;
 export interface SchemaType {
   unique?: boolean;
   sparse?: boolean; // 间隙索引
+  index?: boolean;
+
   required?: boolean | [boolean, string];
 
   default?: any;
