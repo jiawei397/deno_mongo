@@ -35,29 +35,67 @@ export class Collection<T> {
     this.#schema = schema;
   }
 
-  find(filter?: Document, options?: FindOptions): FindCursor<T> {
+  private find(filter?: Document, options?: FindOptions): FindCursor<T> {
+    let others = {};
+    if (options) {
+      // deno-lint-ignore no-unused-vars
+      const { remainOriginId, ..._others } = options; // must drop it otherwise will call error
+      others = _others;
+    }
     return new FindCursor<T>({
       filter,
       protocol: this.#protocol,
       collectionName: this.name,
       dbName: this.#dbName,
-      options: options ?? {},
+      options: others,
     });
+  }
+
+  private async preFind(filter?: Document, options?: FindOptions) {
+    await this.preHooks(MongoHookMethod.find, filter, options);
+  }
+
+  private async afterFind(
+    docs: unknown | unknown[],
+    filter?: Document,
+    options?: FindOptions,
+  ) {
+    await this.postHooks(MongoHookMethod.find, docs, filter, options);
+    if (Array.isArray(docs)) {
+      docs.forEach((doc) => this.formatFindDoc(doc, options?.remainOriginId));
+    } else {
+      this.formatFindDoc(docs, options?.remainOriginId);
+    }
   }
 
   async findOne(
     filter?: Document,
     options?: FindOptions,
   ): Promise<T | undefined> {
+    await this.preFind(filter, options);
     const cursor = this.find(filter, options);
-    return await cursor.next();
+    const doc = await cursor.next();
+    await this.afterFind(doc, filter, options);
+    return doc;
   }
 
-  findMany(
+  async findMany(
     filter?: Document,
     options?: FindOptions,
   ): Promise<T[]> {
-    return this.find(filter, options).toArray();
+    await this.preFind(filter, options);
+    const docs = await this.find(filter, options).toArray();
+    await this.afterFind(docs, filter, options);
+    return docs;
+  }
+
+  formatFindDoc(doc: any, remainOriginId?: boolean) {
+    if (!doc.id) {
+      doc.id = doc._id.toString();
+      if (!remainOriginId) {
+        delete doc._id;
+      }
+    }
   }
 
   async count(filter?: Document, options?: CountOptions): Promise<number> {
@@ -84,16 +122,35 @@ export class Collection<T> {
     return this.insertMany(docs as Document[], options);
   }
 
+  private async preHooks(hook: MongoHookMethod, ...args: any[]) {
+    if (!this.#schema) {
+      return;
+    }
+
+    const fns = this.#schema.getPreHookByMethod(hook);
+    if (fns) {
+      await Promise.all(fns.map((fn) => fn(...args)));
+    }
+  }
+
+  private async postHooks(hook: MongoHookMethod, ...args: any[]) {
+    if (!this.#schema) {
+      return;
+    }
+
+    const fns = this.#schema.getPostHookByMethod(hook);
+    if (fns) {
+      await Promise.all(fns.map((fn) => fn(...args)));
+    }
+  }
+
   // check before insert
   private async preInsert(docs: Document[]) {
     if (!this.#schema) {
       return;
     }
 
-    const fns = this.#schema.getPreHookByMethod(MongoHookMethod.create);
-    if (fns) {
-      await Promise.all(fns.map((fn) => fn(docs)));
-    }
+    await this.preHooks(MongoHookMethod.create, docs);
 
     const data = this.#schema.getMeta();
     for (const key in data) {
@@ -132,13 +189,7 @@ export class Collection<T> {
   }
 
   private async afterInsert(docs: Document[]) {
-    if (!this.#schema) {
-      return;
-    }
-    const fns = this.#schema.getPostHookByMethod(MongoHookMethod.create);
-    if (fns) {
-      await Promise.all(fns.map((fn) => fn(docs)));
-    }
+    await this.postHooks(MongoHookMethod.create, docs);
   }
 
   async insertMany(
@@ -179,29 +230,18 @@ export class Collection<T> {
     update: Document,
     options?: UpdateOptions,
   ) {
-    if (!this.#schema) {
-      return;
-    }
-    const fns = this.#schema.getPreHookByMethod(
+    await this.preHooks(
       MongoHookMethod.findOneAndUpdate,
+      filter,
+      update,
+      options,
     );
-    if (fns) {
-      await Promise.all(fns.map((fn) => fn(filter, update, options)));
-    }
   }
 
   private async afterFindOneAndUpdate(
     doc?: Document,
   ) {
-    if (!this.#schema) {
-      return;
-    }
-    const fns = this.#schema.getPostHookByMethod(
-      MongoHookMethod.findOneAndUpdate,
-    );
-    if (fns) {
-      await Promise.all(fns.map((fn) => fn(doc)));
-    }
+    await this.postHooks(MongoHookMethod.findOneAndUpdate, doc);
   }
 
   findByIdAndUpdate(
@@ -217,11 +257,12 @@ export class Collection<T> {
 
   findById(
     id: string,
+    options?: FindOptions,
   ) {
     const filter = {
       _id: new Bson.ObjectID(id),
     };
-    return this.findOne(filter);
+    return this.findOne(filter, options);
   }
 
   async findOneAndUpdate(
@@ -266,13 +307,7 @@ export class Collection<T> {
     doc: Document,
     options?: UpdateOptions,
   ) {
-    if (!this.#schema) {
-      return;
-    }
-    const fns = this.#schema.getPreHookByMethod(MongoHookMethod.update);
-    if (fns) {
-      await Promise.all(fns.map((fn) => fn(filter, doc, options)));
-    }
+    await this.preHooks(MongoHookMethod.update, filter, doc, options);
   }
 
   private async afterUpdate(
@@ -280,13 +315,7 @@ export class Collection<T> {
     doc: Document,
     options?: UpdateOptions,
   ) {
-    if (!this.#schema) {
-      return;
-    }
-    const fns = this.#schema.getPostHookByMethod(MongoHookMethod.update);
-    if (fns) {
-      await Promise.all(fns.map((fn) => fn(filter, doc, options)));
-    }
+    await this.postHooks(MongoHookMethod.update, filter, doc, options);
   }
 
   async updateMany(filter: Document, doc: Document, options?: UpdateOptions) {
@@ -309,7 +338,23 @@ export class Collection<T> {
     return res;
   }
 
+  private async preDelete(
+    filter: Document,
+    options?: DeleteOptions,
+  ) {
+    await this.preHooks(MongoHookMethod.delete, filter, options);
+  }
+
+  private async afterDelete(
+    filter: Document,
+    options?: DeleteOptions,
+    res?: Bson.Document,
+  ) {
+    await this.postHooks(MongoHookMethod.delete, filter, options, res);
+  }
+
   async deleteMany(filter: Document, options?: DeleteOptions): Promise<number> {
+    await this.preDelete(filter, options);
     const res = await this.#protocol.commandSingle(this.#dbName, {
       delete: this.name,
       deletes: [
@@ -324,6 +369,7 @@ export class Collection<T> {
       ordered: options?.ordered ?? true,
       writeConcern: options?.writeConcern,
     });
+    await this.afterDelete(filter, options, res);
     return res.n;
   }
 
@@ -332,6 +378,8 @@ export class Collection<T> {
   deleteOne(filter: Document, options?: DeleteOptions) {
     return this.delete(filter, { ...options, limit: 1 });
   }
+
+  findOneAndDelete = this.deleteOne;
 
   deleteById(id: string) {
     const filter = {

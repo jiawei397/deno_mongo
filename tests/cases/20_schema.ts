@@ -67,6 +67,11 @@ User.post(MongoHookMethod.findOneAndUpdate, function (doc) {
   doc.name = "haha";
 });
 
+User.post(MongoHookMethod.find, function (doc) {
+  console.log("----post----", doc);
+  doc.name = "MongoHookMethod.find";
+});
+
 const model = await getModel<User>(db, User);
 
 // await model.insertOne({
@@ -83,18 +88,18 @@ const model = await getModel<User>(db, User);
 //   "modifyTime": "2021-01-12T07:37:45.527Z",
 // });
 
-const res = await model.findByIdAndUpdate("60e6e6005fd742d2f03bda02", {
-  $set: {
-    // "groups": [
-    //   "aaa",
-    //   "bbb",
-    // ],
-    "username": "jw2",
-  },
-}, {
-  new: true,
-});
-console.log(res);
+// const res = await model.findByIdAndUpdate("60e6e6005fd742d2f03bda02", {
+//   $set: {
+//     // "groups": [
+//     //   "aaa",
+//     //   "bbb",
+//     // ],
+//     "username": "jw2",
+//   },
+// }, {
+//   new: true,
+// });
+// console.log(res);
 
-// const arr = await model.findMany({});
-// console.log(arr);
+const arr = await model.findById("60e6e614285ceda2e3c5c878");
+console.log(arr);

@@ -39,6 +39,8 @@ export interface FindOptions {
   projection?: Document;
   sort?: Document;
   noCursorTimeout?: boolean;
+
+  remainOriginId?: boolean; // is keep _id
 }
 
 export interface ListDatabaseInfo {
