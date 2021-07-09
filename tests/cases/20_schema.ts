@@ -108,5 +108,7 @@ const arr = await model.findMany({
   _id: {
     $in: ["60e6e614285ceda2e3c5c878", "60e6e6005fd742d2f03bda02"],
   },
+}, {
+  remainOriginId: true,
 });
 console.log(arr);

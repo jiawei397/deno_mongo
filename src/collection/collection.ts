@@ -52,18 +52,7 @@ export class Collection<T> {
   }
 
   private async preFind(filter?: Document, options?: FindOptions) {
-    if (filter?._id) {
-      const id = filter._id;
-      if (typeof id === "string") {
-        filter._id = new Bson.ObjectID(id);
-      } else if (Array.isArray(id.$in)) {
-        id.$in = id.$in.map((_id: any) => {
-          if (typeof _id === "string") {
-            return new Bson.ObjectID(_id);
-          }
-        });
-      }
-    }
+    this.formatBsonId(filter);
     await this.preHooks(MongoHookMethod.find, filter, options);
   }
 
@@ -101,7 +90,7 @@ export class Collection<T> {
     return docs;
   }
 
-  formatFindDoc(doc: any, remainOriginId?: boolean) {
+  private formatFindDoc(doc: any, remainOriginId?: boolean) {
     if (!doc.id) {
       doc.id = doc._id.toString();
       if (!remainOriginId) {
@@ -110,7 +99,25 @@ export class Collection<T> {
     }
   }
 
+  private formatBsonId(filter?: Document) {
+    if (filter) {
+      if (filter?._id) {
+        const id = filter._id;
+        if (typeof id === "string") {
+          filter._id = new Bson.ObjectID(id);
+        } else if (Array.isArray(id.$in)) {
+          id.$in = id.$in.map((_id: any) => {
+            if (typeof _id === "string") {
+              return new Bson.ObjectID(_id);
+            }
+          });
+        }
+      }
+    }
+  }
+
   async count(filter?: Document, options?: CountOptions): Promise<number> {
+    this.formatBsonId(filter);
     const res = await this.#protocol.commandSingle(this.#dbName, {
       count: this.name,
       query: filter,
@@ -244,6 +251,7 @@ export class Collection<T> {
     update: Document,
     options?: UpdateOptions,
   ) {
+    this.formatBsonId(filter);
     await this.preHooks(
       MongoHookMethod.findOneAndUpdate,
       filter,
@@ -321,6 +329,7 @@ export class Collection<T> {
     doc: Document,
     options?: UpdateOptions,
   ) {
+    this.formatBsonId(filter);
     await this.preHooks(MongoHookMethod.update, filter, doc, options);
   }
 
@@ -333,9 +342,6 @@ export class Collection<T> {
   }
 
   async updateMany(filter: Document, doc: Document, options?: UpdateOptions) {
-    if (filter._id && !(filter._id instanceof Bson.ObjectID)) {
-      filter._id = new Bson.ObjectID(filter._id);
-    }
     await this.preUpdate(filter, doc, options);
     const res = await update(
       this.#protocol,
@@ -356,6 +362,7 @@ export class Collection<T> {
     filter: Document,
     options?: DeleteOptions,
   ) {
+    this.formatBsonId(filter);
     await this.preHooks(MongoHookMethod.delete, filter, options);
   }
 
