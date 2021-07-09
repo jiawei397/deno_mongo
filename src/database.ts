@@ -30,8 +30,16 @@ export class Database {
     this.#cluster = cluster;
   }
 
-  collection<T>(name: string, cls?: SchemaCls): Collection<T> {
-    return new Collection(this.#cluster.protocol, this.name, name, cls);
+  collection<T>(
+    name: string,
+    schema?: SchemaCls,
+  ): Collection<T> {
+    return new Collection(
+      this.#cluster.protocol,
+      this.name,
+      name,
+      schema,
+    );
   }
 
   listCollections(options?: {

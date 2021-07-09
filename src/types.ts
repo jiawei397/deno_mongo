@@ -534,3 +534,9 @@ export interface SchemaType {
     message: string;
   };
 }
+
+export type Target = Constructor & {
+  [x: string]: any;
+};
+
+export type TargetInstance = any;

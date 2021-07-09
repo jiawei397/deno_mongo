@@ -2,14 +2,14 @@ import { yellow } from "../../deps.ts";
 import { MongoClient } from "../client.ts";
 import { Collection } from "../collection/collection.ts";
 import { Database } from "../database.ts";
-import { SchemaCls } from "../schema.ts";
-import { Constructor, SchemaType } from "../types.ts";
+import { Schema, SchemaCls } from "../schema.ts";
+import { Constructor, SchemaType, Target, TargetInstance } from "../types.ts";
 
 export const TYPE_METADATA_KEY = "design:type";
 
 let connectedPromise: Promise<any>;
 const client = new MongoClient();
-const modelCaches = new Map();
+let modelCaches: Map<SchemaCls, any> | undefined;
 
 export function getDB(db: string): Promise<Database> {
   if (!connectedPromise) {
@@ -35,23 +35,27 @@ function getModelByName(cls: Constructor, name?: string) {
   return modelName.toLowerCase();
 }
 
-export async function getModel<T>(
+export async function getModel<T extends Schema>(
   db: Database,
   cls: SchemaCls,
   name?: string,
 ): Promise<Collection<T>> {
-  if (modelCaches.has(cls)) {
-    return modelCaches.get(cls);
+  if (!modelCaches) {
+    modelCaches = new Map<SchemaCls, Collection<T>>();
+  } else {
+    if (modelCaches.has(cls)) {
+      return modelCaches.get(cls);
+    }
   }
   const modelName = getModelByName(cls, name);
-  const model = db.collection<T>(modelName, cls);
+  const model = db.collection(modelName, cls);
   modelCaches.set(cls, model);
-  await initModel<T>(model, cls);
+  await initModel(model, cls);
   console.log(`model [${modelName}] init ok`);
-  return model;
+  return model as Collection<T>;
 }
 
-export async function initModel<T>(model: Collection<T>, cls: SchemaCls) {
+export async function initModel(model: Collection<unknown>, cls: SchemaCls) {
   const data = getMetadata(
     TYPE_METADATA_KEY,
     cls,
@@ -81,12 +85,6 @@ export async function initModel<T>(model: Collection<T>, cls: SchemaCls) {
     indexes,
   });
 }
-
-type Target = Constructor & {
-  [x: string]: any;
-};
-
-type TargetInstance = any;
 
 function addMetadata(
   key: string,

@@ -19,6 +19,93 @@ extend some API.
 ## Examples
 
 ```ts
+import { Schema, getDB, getModel, Prop } from "https://deno.land/x/jw_mongo@v0.24.1/mod.ts";
+import type { Document, MongoHookMethod } from "https://deno.land/x/jw_mongo@v0.24.1/mod.ts";
+
+const db = await getDB("mongodb://localhost:27017");
+
+class User extends Schema {
+  @Prop()
+  external!: boolean;
+
+  @Prop()
+  modifyTime!: Date;
+
+  @Prop()
+  createTime!: Date;
+
+  @Prop()
+  enName!: string;
+
+  @Prop()
+  groups!: string[];
+
+  _id!: string;
+
+  @Prop({
+    unique: true,
+  })
+  id!: string;
+
+  @Prop()
+  avatar!: string;
+
+  @Prop()
+  state!: string;
+
+  @Prop({
+    required: true,
+  })
+  email!: string;
+
+  @Prop({
+    required: true,
+  })
+  username!: string;
+
+  @Prop({
+    default: Date.now,
+    expires: 60, // seconds
+  })
+  expires?: Date;
+}
+
+User.pre(
+  MongoHookMethod.update,
+  function (filter: Document, doc: Document, options?: UpdateOptions) {
+    console.log("----pre----", filter, doc, options);
+    if (!doc.$set) {
+      doc.$set = {};
+    }
+    doc.$set.modifyTime = new Date();
+  },
+);
+
+User.post(MongoHookMethod.findOneAndUpdate, function (doc) {
+  console.log("----post----", doc);
+  doc.name = "haha";
+});
+
+const model = await getModel<User>(db, User);
+
+await model.insertOne({
+  "groups": [
+    "aaa",
+  ],
+  "id": 3,
+  "username": 464,
+  "enName": "aa",
+  "email": "aaw",
+  "external": false,
+  "state": "active",
+  "createTime": "2021-01-12T07:09:10.094Z",
+  "modifyTime": "2021-01-12T07:37:45.527Z",
+});
+```
+
+Below is origin example: 
+
+```ts
 import { Bson, MongoClient } from "https://deno.land/x/mongo@v0.22.0/mod.ts";
 
 const client = new MongoClient();

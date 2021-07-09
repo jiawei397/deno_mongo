@@ -53,6 +53,13 @@ export class Collection<T> {
     return await cursor.next();
   }
 
+  findMany(
+    filter?: Document,
+    options?: FindOptions,
+  ): Promise<T[]> {
+    return this.find(filter, options).toArray();
+  }
+
   async count(filter?: Document, options?: CountOptions): Promise<number> {
     const res = await this.#protocol.commandSingle(this.#dbName, {
       count: this.name,
@@ -184,7 +191,7 @@ export class Collection<T> {
   }
 
   private async afterFindOneAndUpdate(
-    doc: Document,
+    doc?: Document,
   ) {
     if (!this.#schema) {
       return;
@@ -227,9 +234,7 @@ export class Collection<T> {
     if (options?.new) {
       if (res.matchedCount > 0) {
         const updatedDoc = await this.findOne(filter);
-        if (updatedDoc) {
-          await this.afterFindOneAndUpdate(updatedDoc);
-        }
+        await this.afterFindOneAndUpdate(updatedDoc);
         return updatedDoc;
       } else {
         return null;
