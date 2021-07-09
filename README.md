@@ -19,8 +19,8 @@ extend some API.
 ## Examples
 
 ```ts
-import { Schema, getDB, getModel, Prop } from "https://deno.land/x/jw_mongo@v0.24.2/mod.ts";
-import type { Document, MongoHookMethod } from "https://deno.land/x/jw_mongo@v0.24.2/mod.ts";
+import { Schema, getDB, getModel, Prop } from "https://deno.land/x/jw_mongo@v0.24.3/mod.ts";
+import type { Document, MongoHookMethod } from "https://deno.land/x/jw_mongo@v0.24.3/mod.ts";
 
 const db = await getDB("mongodb://localhost:27017");
 
