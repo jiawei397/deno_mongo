@@ -91,6 +91,9 @@ export class Collection<T> {
   }
 
   private formatFindDoc(doc: any, remainOriginId?: boolean) {
+    if (!doc) {
+      return;
+    }
     if (!doc.id) {
       doc.id = doc._id.toString();
       if (!remainOriginId) {
