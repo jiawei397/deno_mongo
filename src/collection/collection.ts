@@ -1,6 +1,6 @@
-import { Bson } from "../../deps.ts";
-import { WireProtocol } from "../protocol/mod.ts";
-import { SchemaCls } from "../schema.ts";
+import {Bson} from "../../deps.ts";
+import {WireProtocol} from "../protocol/mod.ts";
+import {SchemaCls} from "../schema.ts";
 import {
   CountOptions,
   CreateIndexOptions,
@@ -14,10 +14,10 @@ import {
   SchemaType,
   UpdateOptions,
 } from "../types.ts";
-import { AggregateCursor } from "./commands/aggregate.ts";
-import { FindCursor } from "./commands/find.ts";
-import { ListIndexesCursor } from "./commands/listIndexes.ts";
-import { update } from "./commands/update.ts";
+import {AggregateCursor} from "./commands/aggregate.ts";
+import {FindCursor} from "./commands/find.ts";
+import {ListIndexesCursor} from "./commands/listIndexes.ts";
+import {update} from "./commands/update.ts";
 
 export class Collection<T> {
   #protocol: WireProtocol;
@@ -25,10 +25,10 @@ export class Collection<T> {
   #schema: SchemaCls | undefined;
 
   constructor(
-    protocol: WireProtocol,
-    dbName: string,
-    readonly name: string,
-    schema?: SchemaCls,
+      protocol: WireProtocol,
+      dbName: string,
+      readonly name: string,
+      schema?: SchemaCls,
   ) {
     this.#protocol = protocol;
     this.#dbName = dbName;
@@ -39,16 +39,26 @@ export class Collection<T> {
     let others = {};
     if (options) {
       // deno-lint-ignore no-unused-vars
-      const { remainOriginId, ..._others } = options; // must drop it otherwise will call error
+      const {remainOriginId, ..._others} = options; // must drop it otherwise will call error
       others = _others;
     }
-    return new FindCursor<T>({
+    const res = new FindCursor<T>({
       filter,
       protocol: this.#protocol,
       collectionName: this.name,
       dbName: this.#dbName,
       options: others,
     });
+    if (options?.skip) {
+      res.skip(options.skip);
+    }
+    if (options?.limit) {
+      res.limit(options.limit);
+    }
+    if (options?.sort) {
+      res.sort(options.sort);
+    }
+    return res;
   }
 
   private async preFind(filter?: Document, options?: FindOptions) {
@@ -57,9 +67,9 @@ export class Collection<T> {
   }
 
   private async afterFind(
-    docs: unknown | unknown[],
-    filter?: Document,
-    options?: FindOptions,
+      docs: unknown | unknown[],
+      filter?: Document,
+      options?: FindOptions,
   ) {
     await this.postHooks(MongoHookMethod.find, docs, filter, options);
     if (Array.isArray(docs)) {
@@ -70,8 +80,8 @@ export class Collection<T> {
   }
 
   async findOne(
-    filter?: Document,
-    options?: FindOptions,
+      filter?: Document,
+      options?: FindOptions,
   ): Promise<T | undefined> {
     await this.preFind(filter, options);
     const cursor = this.find(filter, options);
@@ -81,8 +91,8 @@ export class Collection<T> {
   }
 
   async findMany(
-    filter?: Document,
-    options?: FindOptions,
+      filter?: Document,
+      options?: FindOptions,
   ): Promise<T[]> {
     await this.preFind(filter, options);
     const docs = await this.find(filter, options).toArray();
@@ -126,7 +136,7 @@ export class Collection<T> {
       query: filter,
       ...options,
     });
-    const { n, ok } = res;
+    const {n, ok} = res;
     if (ok === 1) {
       return n;
     } else {
@@ -135,7 +145,7 @@ export class Collection<T> {
   }
 
   async insertOne(doc: Document, options?: InsertOptions) {
-    const { insertedIds } = await this.insertMany([doc], options);
+    const {insertedIds} = await this.insertMany([doc], options);
     return insertedIds[0];
   }
 
@@ -217,8 +227,8 @@ export class Collection<T> {
   }
 
   async insertMany(
-    docs: Document[],
-    options?: InsertOptions,
+      docs: Document[],
+      options?: InsertOptions,
   ): Promise<{ insertedIds: Document[]; insertedCount: number }> {
     const insertedIds = docs.map((doc) => {
       if (!doc._id) {
@@ -237,9 +247,9 @@ export class Collection<T> {
       bypassDocumentValidation: options?.bypassDocumentValidation,
       comment: options?.comment,
     });
-    const { writeErrors } = res;
+    const {writeErrors} = res;
     if (writeErrors) {
-      const [{ errmsg }] = writeErrors;
+      const [{errmsg}] = writeErrors;
       throw new Error(errmsg);
     }
     await this.afterInsert(docs);
@@ -250,29 +260,29 @@ export class Collection<T> {
   }
 
   private async preFindOneAndUpdate(
-    filter: Document,
-    update: Document,
-    options?: UpdateOptions,
+      filter: Document,
+      update: Document,
+      options?: UpdateOptions,
   ) {
     this.formatBsonId(filter);
     await this.preHooks(
-      MongoHookMethod.findOneAndUpdate,
-      filter,
-      update,
-      options,
+        MongoHookMethod.findOneAndUpdate,
+        filter,
+        update,
+        options,
     );
   }
 
   private async afterFindOneAndUpdate(
-    doc?: Document,
+      doc?: Document,
   ) {
     await this.postHooks(MongoHookMethod.findOneAndUpdate, doc);
   }
 
   findByIdAndUpdate(
-    id: string,
-    update: Document,
-    options?: UpdateOptions,
+      id: string,
+      update: Document,
+      options?: UpdateOptions,
   ) {
     const filter = {
       _id: new Bson.ObjectID(id),
@@ -281,8 +291,8 @@ export class Collection<T> {
   }
 
   findById(
-    id: string,
-    options?: FindOptions,
+      id: string,
+      options?: FindOptions,
   ) {
     const filter = {
       _id: new Bson.ObjectID(id),
@@ -291,9 +301,9 @@ export class Collection<T> {
   }
 
   async findOneAndUpdate(
-    filter: Document,
-    update: Document,
-    options?: UpdateOptions,
+      filter: Document,
+      update: Document,
+      options?: UpdateOptions,
   ) {
     await this.preFindOneAndUpdate(filter, update, options);
     const res = await this.updateOne(filter, update, options);
@@ -328,18 +338,18 @@ export class Collection<T> {
   }
 
   private async preUpdate(
-    filter: Document,
-    doc: Document,
-    options?: UpdateOptions,
+      filter: Document,
+      doc: Document,
+      options?: UpdateOptions,
   ) {
     this.formatBsonId(filter);
     await this.preHooks(MongoHookMethod.update, filter, doc, options);
   }
 
   private async afterUpdate(
-    filter: Document,
-    doc: Document,
-    options?: UpdateOptions,
+      filter: Document,
+      doc: Document,
+      options?: UpdateOptions,
   ) {
     await this.postHooks(MongoHookMethod.update, filter, doc, options);
   }
@@ -347,32 +357,32 @@ export class Collection<T> {
   async updateMany(filter: Document, doc: Document, options?: UpdateOptions) {
     await this.preUpdate(filter, doc, options);
     const res = await update(
-      this.#protocol,
-      this.#dbName,
-      this.name,
-      filter,
-      doc,
-      {
-        ...options,
-        multi: options?.multi ?? true,
-      },
+        this.#protocol,
+        this.#dbName,
+        this.name,
+        filter,
+        doc,
+        {
+          ...options,
+          multi: options?.multi ?? true,
+        },
     );
     await this.afterUpdate(filter, doc, options);
     return res;
   }
 
   private async preDelete(
-    filter: Document,
-    options?: DeleteOptions,
+      filter: Document,
+      options?: DeleteOptions,
   ) {
     this.formatBsonId(filter);
     await this.preHooks(MongoHookMethod.delete, filter, options);
   }
 
   private async afterDelete(
-    filter: Document,
-    options?: DeleteOptions,
-    res?: Bson.Document,
+      filter: Document,
+      options?: DeleteOptions,
+      res?: Bson.Document,
   ) {
     await this.postHooks(MongoHookMethod.delete, filter, options, res);
   }
@@ -400,7 +410,7 @@ export class Collection<T> {
   delete = this.deleteMany;
 
   deleteOne(filter: Document, options?: DeleteOptions) {
-    return this.delete(filter, { ...options, limit: 1 });
+    return this.delete(filter, {...options, limit: 1});
   }
 
   findOneAndDelete = this.deleteOne;
@@ -420,7 +430,7 @@ export class Collection<T> {
   }
 
   async distinct(key: string, query?: Document, options?: DistinctOptions) {
-    const { values } = await this.#protocol.commandSingle(this.#dbName, {
+    const {values} = await this.#protocol.commandSingle(this.#dbName, {
       distinct: this.name,
       key,
       query,
@@ -453,9 +463,7 @@ export class Collection<T> {
   }
 
   listIndexes() {
-    return new ListIndexesCursor<
-      { v: number; key: Document; name: string; ns: string }
-    >({
+    return new ListIndexesCursor<{ v: number; key: Document; name: string; ns: string }>({
       protocol: this.#protocol,
       dbName: this.#dbName,
       collectionName: this.name,
