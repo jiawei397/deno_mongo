@@ -81,6 +81,9 @@ const arr = await model.findMany({
 }, {
   remainOriginId: true,
   skip: 0, // 从0开始
-  limit: 2
+  limit: 2,
+  sort: {
+    age: 1
+  }
 });
 console.log(arr);

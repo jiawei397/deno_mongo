@@ -103,7 +103,7 @@ await model.insertOne({
 });
 ```
 
-Below is origin example: 
+Below is origin example:
 
 ```ts
 import { Bson, MongoClient } from "https://deno.land/x/mongo@v0.22.0/mod.ts";
@@ -203,10 +203,30 @@ const deleteCount = await users.deleteOne({ _id: insertId });
 const deleteCount2 = await users.deleteMany({ username: "test" });
 
 // Skip
-const skipTwo = await users.skip(2).find();
+const skipTwo = await users.find({}, {
+    skip: 0
+});
 
 // Limit
-const featuredUser = await users.limit(5).find();
+const featuredUser = await users.find({}, {
+    limit: 5
+});
+
+// Sort
+const featuredUser = await users.find({}, {
+    sort: {
+        age: -1
+    }
+});
+
+// or use skip limit and sort
+const featuredUser = await users.find({}, {
+    skip: 0,
+    limit: 5,
+    sort: {
+        age: -1
+    }
+});
 ```
 
 ## Contributing
