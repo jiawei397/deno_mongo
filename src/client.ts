@@ -5,7 +5,7 @@ import { MongoError } from "./error.ts";
 import { Cluster } from "./cluster.ts";
 import { assert } from "../deps.ts";
 
-const DENO_DRIVER_VERSION = "0.24.5";
+const VERSION = "0.24.6";
 
 export class MongoClient {
   #cluster?: Cluster;
@@ -91,6 +91,6 @@ export class MongoClient {
   }
 
   get version() {
-    return DENO_DRIVER_VERSION;
+    return VERSION;
   }
 }
