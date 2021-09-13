@@ -38,7 +38,7 @@ User.post(MongoHookMethod.findOneAndUpdate, function (doc) {
 User.post(MongoHookMethod.find, function (docs) {
   console.log("----post--find--", docs);
   docs.forEach((item: any) => {
-    item['inserted'] = "MongoHookMethod.find";
+    item["inserted"] = "MongoHookMethod.find";
   });
 });
 
@@ -83,7 +83,7 @@ const arr = await model.findMany({
   skip: 0, // 从0开始
   limit: 2,
   sort: {
-    age: 1
-  }
+    age: 1,
+  },
 });
 console.log(arr);

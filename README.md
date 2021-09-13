@@ -19,8 +19,16 @@ extend some API.
 ## Examples
 
 ```ts
-import { Schema, getDB, getModel, Prop } from "https://deno.land/x/jw_mongo@v0.24.3/mod.ts";
-import type { Document, MongoHookMethod } from "https://deno.land/x/jw_mongo@v0.24.3/mod.ts";
+import {
+  getDB,
+  getModel,
+  Prop,
+  Schema,
+} from "https://deno.land/x/jw_mongo@v0.24.3/mod.ts";
+import type {
+  Document,
+  MongoHookMethod,
+} from "https://deno.land/x/jw_mongo@v0.24.3/mod.ts";
 
 const db = await getDB("mongodb://localhost:27017");
 
@@ -204,28 +212,28 @@ const deleteCount2 = await users.deleteMany({ username: "test" });
 
 // Skip
 const skipTwo = await users.find({}, {
-    skip: 0
+  skip: 0,
 });
 
 // Limit
 const featuredUser = await users.find({}, {
-    limit: 5
+  limit: 5,
 });
 
 // Sort
 const featuredUser = await users.find({}, {
-    sort: {
-        age: -1
-    }
+  sort: {
+    age: -1,
+  },
 });
 
 // or use skip limit and sort
 const featuredUser = await users.find({}, {
-    skip: 0,
-    limit: 5,
-    sort: {
-        age: -1
-    }
+  skip: 0,
+  limit: 5,
+  sort: {
+    age: -1,
+  },
 });
 ```
 
