@@ -514,7 +514,8 @@ export enum MongoHookMethod {
   create,
   update,
   delete,
-  find,
+  findMany,
+  findOne,
   findOneAndUpdate,
 }
 

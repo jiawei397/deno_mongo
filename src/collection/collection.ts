@@ -1,4 +1,4 @@
-import { Bson } from "../../deps.ts";
+import { blue, Bson, yellow } from "../../deps.ts";
 import { WireProtocol } from "../protocol/mod.ts";
 import { SchemaCls } from "../schema.ts";
 import {
@@ -61,9 +61,9 @@ export class Collection<T> {
     return res;
   }
 
-  private async preFind(filter?: Document, options?: FindOptions) {
+  private async preFind(hookType: MongoHookMethod, filter?: Document, options?: FindOptions) {
     this.formatBsonId(filter);
-    await this.preHooks(MongoHookMethod.find, filter, options);
+    await this.preHooks(hookType, filter, options);
   }
 
   private async afterFind(
@@ -71,10 +71,11 @@ export class Collection<T> {
     filter?: Document,
     options?: FindOptions,
   ) {
-    await this.postHooks(MongoHookMethod.find, docs, filter, options);
     if (Array.isArray(docs)) {
+      await this.postHooks(MongoHookMethod.findMany, docs, filter, options);
       docs.forEach((doc) => this.formatFindDoc(doc, options?.remainOriginId));
     } else {
+      await this.postHooks(MongoHookMethod.findOne, docs, filter, options);
       this.formatFindDoc(docs, options?.remainOriginId);
     }
   }
@@ -83,7 +84,7 @@ export class Collection<T> {
     filter?: Document,
     options?: FindOptions,
   ): Promise<T | undefined> {
-    await this.preFind(filter, options);
+    await this.preFind(MongoHookMethod.findOne, filter, options);
     const cursor = this.find(filter, options);
     const doc = await cursor.next();
     await this.afterFind(doc, filter, options);
@@ -94,7 +95,7 @@ export class Collection<T> {
     filter?: Document,
     options?: FindOptions,
   ): Promise<T[]> {
-    await this.preFind(filter, options);
+    await this.preFind(MongoHookMethod.findMany, filter, options);
     const docs = await this.find(filter, options).toArray();
     await this.afterFind(docs, filter, options);
     return docs;
@@ -171,7 +172,6 @@ export class Collection<T> {
     if (!this.#schema) {
       return;
     }
-
     const fns = this.#schema.getPostHookByMethod(hook);
     if (fns) {
       await Promise.all(fns.map((fn) => fn(...args)));
@@ -190,6 +190,12 @@ export class Collection<T> {
     for (const key in data) {
       const val: SchemaType = data[key];
       docs.forEach((doc) => {
+        for (const dk in doc) {
+          if (!data.hasOwnProperty(dk) && dk !== '_id') {
+            console.warn(yellow(`remove undefined key [${blue(dk)}] in Schema`));
+            delete doc[dk];
+          }
+        }
         if (doc[key] === undefined && val.default !== undefined) {
           if (typeof val.default === "function") {
             if (val.default === Date.now) { // means to get a new Date
@@ -320,10 +326,6 @@ export class Collection<T> {
   }
 
   async updateOne(filter: Document, update: Document, options?: UpdateOptions) {
-    if ("_id" in update) {
-      console.warn(`update data includes _id and this is invalid, so will drop it`);
-      delete update["_id"];
-    }
     const {
       upsertedIds = [],
       upsertedCount,
@@ -347,6 +349,26 @@ export class Collection<T> {
     options?: UpdateOptions,
   ) {
     this.formatBsonId(filter);
+
+    if (this.#schema) {
+      const data = this.#schema.getMeta();
+      const removeKey = (doc: any) => {
+        for (const dk in doc) {
+          if (!doc.hasOwnProperty(dk)) {
+            continue;
+          }
+          if (dk.startsWith('$')) { // mean is mongo query
+            removeKey(doc[dk]);
+          } else {
+            if (!data.hasOwnProperty(dk)) {
+              console.warn(yellow(`remove undefined key [${blue(dk)}] in Schema`));
+              delete doc[dk];
+            }
+          }
+        }
+      }
+      removeKey(doc);
+    }
     await this.preHooks(MongoHookMethod.update, filter, doc, options);
   }
 

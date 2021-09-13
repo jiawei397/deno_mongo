@@ -3,7 +3,7 @@ import { Schema } from "../../src/schema.ts";
 import { Document, MongoHookMethod, UpdateOptions } from "../../src/types.ts";
 import { getDB, getModel, Prop } from "../../src/utils/helper.ts";
 
-const db = await getDB("mongodb://192.168.21.176:27018/auth");
+const db = await getDB("mongodb://192.168.21.176:27018/test");
 
 class User extends Schema {
   _id!: string;
@@ -31,59 +31,63 @@ User.pre(
 );
 
 User.post(MongoHookMethod.findOneAndUpdate, function (doc) {
-  console.log("----post--findone--", doc);
+  console.log("----post--findOneAndUpdate--", doc);
   doc.name = "haha";
 });
 
-User.post(MongoHookMethod.find, function (docs) {
-  console.log("----post--find--", docs);
+User.post(MongoHookMethod.findMany, function (docs) {
+  console.log("----post--findMany--", docs);
   docs.forEach((item: any) => {
     item["inserted"] = "MongoHookMethod.find";
   });
 });
 
+User.post(MongoHookMethod.findOne, function (doc) {
+  console.log("----post--findOne--", doc);
+  doc["inserted"] = "MongoHookMethod.find";
+});
+
 const model = await getModel<User>(db, User);
 
-// await model.insertOne({
-//   "groups": [
-//     "aaa",
-//   ],
-//   "id": 5,
-//   "username": 'aff',
-//   "enName": "few",
-//   "email": "22",
-//   "external": false,
-//   "state": "active",
-//   "createTime": "2021-01-12T07:09:10.094Z",
-//   "modifyTime": "2021-01-12T07:37:45.527Z",
-// });
+const res = await model.insertOne({
+  "name": 'aff',
+  "age": 18,
+  "enName": "few",
+  "email": "22",
+  "external": false,
+  "state": "active",
+  "createTime": "2021-01-12T07:09:10.094Z",
+  "modifyTime": "2021-01-12T07:37:45.527Z",
+});
+console.log(res.toString());
 
-// const res = await model.findByIdAndUpdate("60e6e6005fd742d2f03bda02", {
+// const res = await model.findByIdAndUpdate("613f09dd6c2086525c6d6bba", {
 //   $set: {
-//     // "groups": [
-//     //   "aaa",
-//     //   "bbb",
-//     // ],
+//     "groups": [
+//       "aaa",
+//       "bbb",
+//     ],
 //     "username": "jw2",
+//     "age": 19
 //   },
 // }, {
 //   new: true,
 // });
 // console.log(res);
 
-// const doc = await model.findById("60e6e614285ceda2e3c5c878");
+// const doc = await model.findById("613f09dd6c2086525c6d6bba");
 // console.log(doc);
 
-const arr = await model.findMany({
-  // _id: {
-  //   $in: ["60e6e614285ceda2e3c5c878", "60e6e6005fd742d2f03bda02"],
-  // },
-}, {
-  remainOriginId: true,
-  skip: 0, // 从0开始
-  limit: 2,
-  sort: {
-    age: 1,
-  },
-});
-console.log(arr);
+// const arr = await model.findMany({
+//   // _id: {
+//   //   $in: ["60e6e614285ceda2e3c5c878", "60e6e6005fd742d2f03bda02"],
+//   // },
+// }, {
+//   remainOriginId: true,
+//   skip: 0, // 从0开始
+//   limit: 2,
+//   sort: {
+//     age: 1,
+//   },
+// });
+// console.log(arr);

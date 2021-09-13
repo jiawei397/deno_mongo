@@ -1,4 +1,4 @@
-import { yellow } from "../../deps.ts";
+import { green, yellow } from "../../deps.ts";
 import { MongoClient } from "../client.ts";
 import { Collection } from "../collection/collection.ts";
 import { Database } from "../database.ts";
@@ -51,7 +51,7 @@ export async function getModel<T extends Schema>(
   const model = db.collection(modelName, cls);
   modelCaches.set(cls, model);
   await initModel(model, cls);
-  console.log(`model [${modelName}] init ok`);
+  console.log(green(`model [${modelName}] init ok`));
   return model as Collection<T>;
 }
 
