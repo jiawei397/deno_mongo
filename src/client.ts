@@ -5,7 +5,6 @@ import { MongoError } from "./error.ts";
 import { Cluster } from "./cluster.ts";
 import { assert } from "../deps.ts";
 
-const VERSION = "0.24.6";
 
 export class MongoClient {
   #cluster?: Cluster;
@@ -90,7 +89,4 @@ export class MongoClient {
     this.connectedCount = 0;
   }
 
-  get version() {
-    return VERSION;
-  }
 }

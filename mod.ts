@@ -7,3 +7,5 @@ export { Bson } from "./deps.ts";
 import { Schema, SchemaCls } from "./src/schema.ts";
 export { Schema };
 export type { SchemaCls };
+
+export const version = "0.24.7";
