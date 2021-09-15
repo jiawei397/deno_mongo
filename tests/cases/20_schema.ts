@@ -49,31 +49,31 @@ User.post(MongoHookMethod.findOne, function (doc) {
 
 const model = await getModel<User>(db, User);
 
-const res = await model.insertOne({
-  "name": 'aff',
-  "age": 18,
-  "enName": "few",
-  "email": "22",
-  "external": false,
-  "state": "active",
-  "createTime": "2021-01-12T07:09:10.094Z",
-  "modifyTime": "2021-01-12T07:37:45.527Z",
-});
-console.log(res.toString());
-
-// const res = await model.findByIdAndUpdate("613f09dd6c2086525c6d6bba", {
-//   $set: {
-//     "groups": [
-//       "aaa",
-//       "bbb",
-//     ],
-//     "username": "jw2",
-//     "age": 19
-//   },
-// }, {
-//   new: true,
+// const res = await model.insertOne({
+//   "name": 'aff',
+//   "age": 18,
+//   "enName": "few",
+//   "email": "22",
+//   "external": false,
+//   "state": "active",
+//   // "createTime": "2021-01-12T07:09:10.094Z",
+//   // "modifyTime": "2021-01-12T07:37:45.527Z",
 // });
-// console.log(res);
+// console.log(res.toString());
+
+const res = await model.findByIdAndUpdate("613f1b073764056ec091fac2", {
+  $set: {
+    "groups": [
+      "aaa",
+      "bbb",
+    ],
+    "username": "式",
+    "age": 222
+  },
+}, {
+  new: true,
+});
+console.log(res);
 
 // const doc = await model.findById("613f09dd6c2086525c6d6bba");
 // console.log(doc);

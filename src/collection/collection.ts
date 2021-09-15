@@ -369,6 +369,15 @@ export class Collection<T> {
       }
       removeKey(doc);
     }
+
+    // add modifyTime
+    if (doc['$set']) {
+      doc['$set']['modifyTime'] = new Date();
+    } else {
+      doc['$set'] = {
+        modifyTime: new Date()
+      }
+    }
     await this.preHooks(MongoHookMethod.update, filter, doc, options);
   }
 

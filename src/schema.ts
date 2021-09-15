@@ -1,5 +1,5 @@
 import { Hooks, MongoHookCallback, MongoHookMethod } from "./types.ts";
-import { getMetadata, TYPE_METADATA_KEY } from "./utils/helper.ts";
+import { getMetadata, Prop, TYPE_METADATA_KEY } from "./utils/helper.ts";
 
 export class Schema {
   static preHooks: Hooks = new Map();
@@ -41,6 +41,17 @@ export class Schema {
   ): MongoHookCallback[] | undefined {
     return this.postHooks.get(method);
   }
+
+  @Prop({
+    default: Date.now
+  })
+  createTime!: Date;
+
+
+  @Prop({
+    default: Date.now
+  })
+  modifyTime!: Date;
 }
 
 export type SchemaCls = typeof Schema;
