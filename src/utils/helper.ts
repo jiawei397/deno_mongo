@@ -70,7 +70,7 @@ export async function initModel(model: Collection<unknown>, cls: SchemaCls) {
       continue;
     }
     indexes.push({
-      name: "_" + key,
+      name: key + '_1',
       key: { [key]: 1 },
       unique: map.unique,
       sparse: map.sparse,
