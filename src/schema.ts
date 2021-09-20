@@ -27,7 +27,12 @@ export class Schema {
   }
 
   static getMeta() {
-    return getMetadata(TYPE_METADATA_KEY, this);
+    const map = getMetadata(this);
+    const baseMap = getMetadata(Schema);
+    return {
+      ...baseMap,
+      ...map,
+    }
   }
 
   static getPreHookByMethod(

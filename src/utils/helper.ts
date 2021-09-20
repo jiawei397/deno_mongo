@@ -5,7 +5,19 @@ import { Database } from "../database.ts";
 import { Schema, SchemaCls } from "../schema.ts";
 import { Constructor, SchemaType, Target, TargetInstance } from "../types.ts";
 
-export const TYPE_METADATA_KEY = "design:type";
+export const TYPE_METADATA_KEY = Symbol("design:type");
+export const instanceCache = new Map();
+export const metadataCache = new Map();
+
+export function getInstance(cls: Target) {
+  if (instanceCache.has(cls)) {
+    return instanceCache.get(cls);
+  }
+  const instance = new cls();
+  instanceCache.set(cls, instance);
+  return instance;
+}
+
 
 let connectedPromise: Promise<any>;
 const client = new MongoClient();
@@ -56,10 +68,7 @@ export async function getModel<T extends Schema>(
 }
 
 export async function initModel(model: Collection<unknown>, cls: SchemaCls) {
-  const data = getMetadata(
-    TYPE_METADATA_KEY,
-    cls,
-  );
+  const data = getMetadata(cls);
   const indexes = [];
   for (const key in data) {
     const map: SchemaType = data[key];
@@ -87,29 +96,33 @@ export async function initModel(model: Collection<unknown>, cls: SchemaCls) {
 }
 
 function addMetadata(
-  key: string,
-  target: TargetInstance, // 实例
+  target: Target,
   propertyKey: string,
   props: any = {},
 ) {
-  // 这里target是实例
-  if (!target.constructor[key]) {
-    target.constructor[key] = {};
+  const instance = getInstance(target);
+  let map = metadataCache.get(instance);
+  if (!map) {
+    map = {};
+    metadataCache.set(instance, map);
   }
-  target.constructor[key][propertyKey] = props;
+  map[propertyKey] = props;
 }
 
 export function getMetadata(
-  key: string,
   target: Target,
   propertyKey?: string,
 ) {
-  return propertyKey ? target[key]?.[propertyKey] : target[key];
+  const map = metadataCache.get(getInstance(target));
+  if (propertyKey) {
+    return map[propertyKey]
+  }
+  return map;
 }
 
 export function Prop(props?: SchemaType) {
   return function (target: TargetInstance, propertyKey: string) {
-    addMetadata(TYPE_METADATA_KEY, target, propertyKey, props);
+    addMetadata(target.constructor, propertyKey, props);
     return target;
   };
 }
