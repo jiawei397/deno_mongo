@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import { WireProtocol } from "./protocol.ts";
 import { Document } from "../types.ts";
 

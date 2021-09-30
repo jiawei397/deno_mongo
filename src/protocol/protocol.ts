@@ -22,7 +22,7 @@ export class WireProtocol {
   #reader: BufReader;
   #commandQueue: CommandTask[] = [];
 
-  #connectionId: number = 0;
+  #connectionId = 0;
 
   constructor(socket: Socket) {
     this.#socket = socket;

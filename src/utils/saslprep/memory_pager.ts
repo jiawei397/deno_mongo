@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 /** Grows a pager. */
 function grow(pager: Pager, index: number): void {
   while (pager.maxPages < index) {

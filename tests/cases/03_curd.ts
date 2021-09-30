@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import { testWithClient } from "../common.ts";
 import { assert, assertEquals, assertThrowsAsync } from "../test.deps.ts";
 

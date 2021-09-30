@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import { assertEquals, assertThrowsAsync } from "../test.deps.ts";
 import { Srv } from "../../src/utils/srv.ts";
 

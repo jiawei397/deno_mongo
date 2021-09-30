@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import { blue, Bson, yellow } from "../../deps.ts";
 import { MongoDriverError } from "../error.ts";
 import { WireProtocol } from "../protocol/mod.ts";
@@ -451,13 +452,13 @@ export class Collection<T> {
       const data = this.#schema.getMeta();
       const removeKey = (doc: any) => {
         for (const dk in doc) {
-          if (!doc.hasOwnProperty(dk)) {
+          if (!Object.prototype.hasOwnProperty.call(doc, dk)) {
             continue;
           }
           if (dk.startsWith("$")) { // mean is mongo query
             removeKey(doc[dk]);
           } else {
-            if (!data.hasOwnProperty(dk)) {
+            if (!Object.prototype.hasOwnProperty.call(data, dk)) {
               console.warn(
                 yellow(`remove undefined key [${blue(dk)}] in Schema`),
               );

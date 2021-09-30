@@ -168,7 +168,6 @@ export default function uriTests() {
       assertEquals(options.credential?.username, "someUser");
       assertEquals(options.credential?.password, "somePassword");
       assertEquals(options.retryWrites, true);
-      // @ts-ignore
       assertEquals(options["servers"], undefined);
     },
   });

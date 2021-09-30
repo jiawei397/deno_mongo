@@ -1,6 +1,7 @@
 //ORIGINAL PROJECT AND LICENSE IN: https://github.com/chiefbiiko/saslprep
 //ORIGINAL PROJECT AND LICENSE IN: https://github.com/chiefbiiko/sparse-bitfield
 //ORIGINAL PROJECT AND LICENSE IN: https://github.com/chiefbiiko/memory-pager
+// deno-lint-ignore-file no-explicit-any camelcase
 import { Bitfield } from "./deps.ts";
 import { loadCodePoints } from "./loadCodePoints.ts";
 

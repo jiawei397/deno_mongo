@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any camelcase
 // mongodb://username:password@example.com:27017,example2.com:27017,...,example.comN:27017/database?key=value&keyN=valueN
 import { ConnectOptions, Credential, Server } from "../types.ts";
 import { Srv } from "./srv.ts";

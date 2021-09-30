@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 // deno run -A --unstable tests/cases/20_schema.ts
 import { Schema } from "../../src/schema.ts";
 import { Document, MongoHookMethod, UpdateOptions } from "../../src/types.ts";
@@ -6,7 +7,6 @@ import {
   getMetadata,
   getModel,
   Prop,
-  TYPE_METADATA_KEY,
 } from "../../src/utils/helper.ts";
 
 const db = await getDB("mongodb://192.168.21.176:27018/test");

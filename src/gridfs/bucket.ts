@@ -18,7 +18,7 @@ export class GridFSBucket {
   #chunksCollection: Collection<Chunk>;
   #filesCollection: Collection<File>;
   #chunkSizeBytes: number;
-  #checkedIndexes: boolean = false;
+  #checkedIndexes = false;
 
   private readonly getBucketData = () => ({
     filesCollection: this.#filesCollection,
@@ -140,7 +140,7 @@ export class GridFSBucket {
    * Downloads the contents of the stored file specified by @id and writes
    * the contents to the @destination Stream.
    */
-  async downloadToStream(
+  downloadToStream(
     id: FileId,
     destination: WritableStream<Uint8Array>,
   ) {

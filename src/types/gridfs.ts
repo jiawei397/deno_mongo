@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { Binary, ObjectId } from "../../deps.ts";
 import { Document, ReadPreference } from "../types.ts";
 import { ReadConcern, WriteConcern } from "../types/readWriteConcern.ts";

@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import { green, yellow } from "../../deps.ts";
 import { MongoClient } from "../client.ts";
 import { Collection } from "../collection/collection.ts";
@@ -137,7 +138,7 @@ export class BaseService {
 }
 
 export function logTime(
-  target: any,
+  _: any,
   name: string,
   descriptor: any,
 ) {

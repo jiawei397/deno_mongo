@@ -1,5 +1,5 @@
 import { Hooks, MongoHookCallback, MongoHookMethod } from "./types.ts";
-import { getMetadata, Prop, TYPE_METADATA_KEY } from "./utils/helper.ts";
+import { getMetadata, Prop } from "./utils/helper.ts";
 
 export class Schema {
   static preHooks: Hooks = new Map();

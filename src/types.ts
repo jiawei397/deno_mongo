@@ -1,7 +1,7 @@
+// deno-lint-ignore-file no-explicit-any camelcase
 import { Bson } from "../deps.ts";
 import { WriteConcern } from "./types/readWriteConcern.ts";
 
-// @ts-ignore
 export type Document = Bson.Document;
 
 export interface Server {
