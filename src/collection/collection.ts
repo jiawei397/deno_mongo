@@ -1,17 +1,26 @@
+// deno-lint-ignore-file no-explicit-any
 import { blue, Bson, yellow } from "../../deps.ts";
+import { MongoDriverError } from "../error.ts";
 import { WireProtocol } from "../protocol/mod.ts";
 import { SchemaCls } from "../schema.ts";
 import {
+  AggregateOptions,
+  AggregatePipeline,
   CountOptions,
   CreateIndexOptions,
   DeleteOptions,
   DistinctOptions,
   Document,
+  DropIndexOptions,
   DropOptions,
+  Filter,
+  FindAndModifyOptions,
   FindOptions,
+  InsertDocument,
   InsertOptions,
   MongoHookMethod,
   SchemaType,
+  UpdateFilter,
   UpdateOptions,
 } from "../types.ts";
 import { AggregateCursor } from "./commands/aggregate.ts";
@@ -35,7 +44,7 @@ export class Collection<T> {
     this.#schema = schema;
   }
 
-  private find(filter?: Document, options?: FindOptions): FindCursor<T> {
+  find(filter?: Document, options?: FindOptions): FindCursor<T> {
     let others = {};
     if (options) {
       // deno-lint-ignore no-unused-vars
@@ -61,7 +70,11 @@ export class Collection<T> {
     return res;
   }
 
-  private async preFind(hookType: MongoHookMethod, filter?: Document, options?: FindOptions) {
+  private async preFind(
+    hookType: MongoHookMethod,
+    filter?: Document,
+    options?: FindOptions,
+  ) {
     this.formatBsonId(filter);
     await this.preHooks(hookType, filter, options);
   }
@@ -81,7 +94,7 @@ export class Collection<T> {
   }
 
   async findOne(
-    filter?: Document,
+    filter?: Filter<T>,
     options?: FindOptions,
   ): Promise<T | undefined> {
     await this.preFind(MongoHookMethod.findOne, filter, options);
@@ -118,11 +131,11 @@ export class Collection<T> {
       if (filter?._id) {
         const id = filter._id;
         if (typeof id === "string") {
-          filter._id = new Bson.ObjectID(id);
+          filter._id = new Bson.ObjectId(id);
         } else if (Array.isArray(id.$in)) {
           id.$in = id.$in.map((_id: any) => {
             if (typeof _id === "string") {
-              return new Bson.ObjectID(_id);
+              return new Bson.ObjectId(_id);
             }
           });
         }
@@ -145,14 +158,87 @@ export class Collection<T> {
     }
   }
 
-  async insertOne(doc: Document, options?: InsertOptions) {
+  /**
+   * Find and modify a document in one, returning the matching document.
+   *
+   * @param query The query used to match documents
+   * @param options Additional options for the operation (e.g. containing update
+   * or remove parameters)
+   * @returns The document matched and modified
+   */
+  async findAndModify(
+    filter?: Filter<T>,
+    options?: FindAndModifyOptions<T>,
+  ): Promise<T | undefined> {
+    const result = await this.#protocol.commandSingle<{
+      value: T;
+      ok: number;
+      lastErrorObject: any;
+    }>(this.#dbName, {
+      findAndModify: this.name,
+      query: filter,
+      ...options,
+    });
+    if (result.ok === 0) {
+      throw new MongoDriverError("Could not execute findAndModify operation");
+    }
+    return result.value;
+  }
+
+  async countDocuments(
+    filter?: Filter<T>,
+    options?: CountOptions,
+  ): Promise<number> {
+    const pipeline: AggregatePipeline<T>[] = [];
+    if (filter) {
+      pipeline.push({ $match: filter });
+    }
+
+    if (typeof options?.skip === "number") {
+      pipeline.push({ $skip: options.limit });
+      delete options.skip;
+    }
+
+    if (typeof options?.limit === "number") {
+      pipeline.push({ $limit: options.limit });
+      delete options.limit;
+    }
+
+    pipeline.push({ $group: { _id: 1, n: { $sum: 1 } } });
+
+    const result = await this.aggregate<{ n: number }>(
+      pipeline,
+      options as AggregateOptions,
+    ).next();
+    if (result) return result.n;
+    return 0;
+  }
+
+  async estimatedDocumentCount(): Promise<number> {
+    const pipeline = [
+      { $collStats: { count: {} } },
+      { $group: { _id: 1, n: { $sum: "$count" } } },
+    ];
+
+    const result = await this.aggregate<{ n: number }>(pipeline).next();
+    if (result) return result.n;
+    return 0;
+  }
+
+  async insertOne(doc: InsertDocument<T>, options?: InsertOptions) {
     const { insertedIds } = await this.insertMany([doc], options);
     return insertedIds[0];
   }
 
-  insert(docs: Document | Document[], options?: InsertOptions) {
+  /**
+   * @deprecated Use `insertOne, insertMany` or `bulkWrite` instead.
+   */
+  insert(
+    docs: InsertDocument<T> | InsertDocument<T>[],
+    options?: InsertOptions,
+  ) {
     docs = Array.isArray(docs) ? docs : [docs];
-    return this.insertMany(docs as Document[], options);
+    return this.insertMany(docs, options);
   }
 
   save = this.insert;
@@ -191,8 +277,10 @@ export class Collection<T> {
       const val: SchemaType = data[key];
       docs.forEach((doc) => {
         for (const dk in doc) {
-          if (!data.hasOwnProperty(dk) && dk !== '_id') {
-            console.warn(yellow(`remove undefined key [${blue(dk)}] in Schema`));
+          if (!data.hasOwnProperty(dk) && dk !== "_id") {
+            console.warn(
+              yellow(`remove undefined key [${blue(dk)}] in Schema`),
+            );
             delete doc[dk];
           }
         }
@@ -233,13 +321,19 @@ export class Collection<T> {
   }
 
   async insertMany(
-    docs: Document[],
+    docs: InsertDocument<T>[],
     options?: InsertOptions,
-  ): Promise<{ insertedIds: Document[]; insertedCount: number }> {
+  ): Promise<
+    {
+      insertedIds: (Bson.ObjectId | Required<InsertDocument<T>>["_id"])[];
+      insertedCount: number;
+    }
+  > {
     const insertedIds = docs.map((doc) => {
       if (!doc._id) {
-        doc._id = new Bson.ObjectID();
+        doc._id = new Bson.ObjectId();
       }
+
       return doc._id;
     });
 
@@ -287,11 +381,11 @@ export class Collection<T> {
 
   findByIdAndUpdate(
     id: string,
-    update: Document,
+    update: UpdateFilter<T>,
     options?: UpdateOptions,
   ) {
     const filter = {
-      _id: new Bson.ObjectID(id),
+      _id: new Bson.ObjectId(id),
     };
     return this.findOneAndUpdate(filter, update, options);
   }
@@ -301,14 +395,14 @@ export class Collection<T> {
     options?: FindOptions,
   ) {
     const filter = {
-      _id: new Bson.ObjectID(id),
+      _id: new Bson.ObjectId(id),
     };
     return this.findOne(filter, options);
   }
 
   async findOneAndUpdate(
-    filter: Document,
-    update: Document,
+    filter: Filter<T>,
+    update: UpdateFilter<T>,
     options?: UpdateOptions,
   ) {
     await this.preFindOneAndUpdate(filter, update, options);
@@ -325,7 +419,11 @@ export class Collection<T> {
     return res;
   }
 
-  async updateOne(filter: Document, update: Document, options?: UpdateOptions) {
+  async updateOne(
+    filter: Filter<T>,
+    update: UpdateFilter<T>,
+    options?: UpdateOptions,
+  ) {
     const {
       upsertedIds = [],
       upsertedCount,
@@ -354,29 +452,31 @@ export class Collection<T> {
       const data = this.#schema.getMeta();
       const removeKey = (doc: any) => {
         for (const dk in doc) {
-          if (!doc.hasOwnProperty(dk)) {
+          if (!Object.prototype.hasOwnProperty.call(doc, dk)) {
             continue;
           }
-          if (dk.startsWith('$')) { // mean is mongo query
+          if (dk.startsWith("$")) { // mean is mongo query
             removeKey(doc[dk]);
           } else {
-            if (!data.hasOwnProperty(dk)) {
-              console.warn(yellow(`remove undefined key [${blue(dk)}] in Schema`));
+            if (!Object.prototype.hasOwnProperty.call(data, dk)) {
+              console.warn(
+                yellow(`remove undefined key [${blue(dk)}] in Schema`),
+              );
               delete doc[dk];
             }
           }
         }
-      }
+      };
       removeKey(doc);
     }
 
     // add modifyTime
-    if (doc['$set']) {
-      doc['$set']['modifyTime'] = new Date();
+    if (doc["$set"]) {
+      doc["$set"]["modifyTime"] = new Date();
     } else {
-      doc['$set'] = {
-        modifyTime: new Date()
-      }
+      doc["$set"] = {
+        modifyTime: new Date(),
+      };
     }
     await this.preHooks(MongoHookMethod.update, filter, doc, options);
   }
@@ -389,7 +489,11 @@ export class Collection<T> {
     await this.postHooks(MongoHookMethod.update, filter, doc, options);
   }
 
-  async updateMany(filter: Document, doc: Document, options?: UpdateOptions) {
+  async updateMany(
+    filter: Filter<T>,
+    doc: UpdateFilter<T>,
+    options?: UpdateOptions,
+  ) {
     await this.preUpdate(filter, doc, options);
     const res = await update(
       this.#protocol,
@@ -422,7 +526,10 @@ export class Collection<T> {
     await this.postHooks(MongoHookMethod.delete, filter, options, res);
   }
 
-  async deleteMany(filter: Document, options?: DeleteOptions): Promise<number> {
+  async deleteMany(
+    filter: Filter<T>,
+    options?: DeleteOptions,
+  ): Promise<number> {
     await this.preDelete(filter, options);
     const res = await this.#protocol.commandSingle(this.#dbName, {
       delete: this.name,
@@ -444,7 +551,10 @@ export class Collection<T> {
 
   delete = this.deleteMany;
 
-  deleteOne(filter: Document, options?: DeleteOptions) {
+  deleteOne(
+    filter: Filter<T>,
+    options?: DeleteOptions,
+  ) {
     return this.delete(filter, { ...options, limit: 1 });
   }
 
@@ -452,7 +562,7 @@ export class Collection<T> {
 
   deleteById(id: string) {
     const filter = {
-      _id: new Bson.ObjectID(id),
+      _id: new Bson.ObjectId(id),
     };
     return this.deleteOne(filter);
   }
@@ -464,7 +574,7 @@ export class Collection<T> {
     });
   }
 
-  async distinct(key: string, query?: Document, options?: DistinctOptions) {
+  async distinct(key: string, query?: Filter<T>, options?: DistinctOptions) {
     const { values } = await this.#protocol.commandSingle(this.#dbName, {
       distinct: this.name,
       key,
@@ -474,8 +584,11 @@ export class Collection<T> {
     return values;
   }
 
-  aggregate(pipeline: Document[], options?: any): AggregateCursor<T> {
-    return new AggregateCursor<T>({
+  aggregate<U = T>(
+    pipeline: AggregatePipeline<U>[],
+    options?: AggregateOptions,
+  ): AggregateCursor<U> {
+    return new AggregateCursor<U>({
       pipeline,
       protocol: this.#protocol,
       dbName: this.#dbName,
@@ -497,9 +610,24 @@ export class Collection<T> {
     return res;
   }
 
+  async dropIndexes(options: DropIndexOptions) {
+    const res = await this.#protocol.commandSingle<{
+      ok: number;
+      nIndexesWas: number;
+    }>(
+      this.#dbName,
+      {
+        dropIndexes: this.name,
+        ...options,
+      },
+    );
+
+    return res;
+  }
+
   listIndexes() {
     return new ListIndexesCursor<
-      { v: number; key: Document; name: string; ns: string }
+      { v: number; key: Document; name: string; ns?: string }
     >({
       protocol: this.#protocol,
       dbName: this.#dbName,

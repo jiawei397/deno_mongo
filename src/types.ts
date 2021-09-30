@@ -1,6 +1,7 @@
+// deno-lint-ignore-file no-explicit-any camelcase
 import { Bson } from "../deps.ts";
+import { WriteConcern } from "./types/readWriteConcern.ts";
 
-// @ts-ignore
 export type Document = Bson.Document;
 
 export interface Server {
@@ -153,6 +154,79 @@ export interface UpdateOptions {
   // session?: ClientSession
 }
 
+/**
+ * Options for controlling the collation of strings in a query
+ *
+ * @see https://docs.mongodb.com/manual/reference/collation/
+ */
+export interface CollationOptions {
+  locale: string;
+  caseLevel?: boolean;
+  caseFirst?: string;
+  strength?: number;
+  numericOrdering?: boolean;
+  alternate?: string;
+  maxVariable?: string;
+  backwards?: boolean;
+}
+
+/**
+ * Options for the findAndModify operation
+ *
+ * @see https://docs.mongodb.com/manual/reference/method/db.collection.findAndModify/
+ */
+export interface FindAndModifyOptions<T = Document> {
+  /**
+   * Control the order in which documents are found.
+   * findAndModify only modifies the first document found, so controlling the
+   * sort order may ensure, that the right document is first
+   */
+  sort?: Document;
+  /**
+   * The update to execute on the found document.
+   *
+   * Either update or remove have to be specified
+   */
+  update?: UpdateFilter<T>;
+  /**
+   * Remove the found document
+   */
+  remove?: boolean;
+  /**
+   * Return the new state after the update
+   */
+  new?: boolean;
+  /**
+   * the fields to return.
+   */
+  fields?: Document;
+  /**
+   * perform an upsert, i.e. update if a document matches, insert otherwise.
+   */
+  upsert?: boolean;
+  /**
+   * do not validate the document during the operation
+   */
+  bypassDocumentValidation?: boolean;
+  /**
+   * The write concern to apply to the write operation
+   */
+  writeConcern?: WriteConcern;
+  /**
+   * The collation options to apply to string handling (e.g. during sort)
+   */
+  collation?: CollationOptions;
+  /**
+   * Filters determining which elements to modify in an array, when modifying
+   * array values
+   */
+  arrayFilters?: Document[];
+  /**
+   * The maximum time of milliseconds the operation is allowed to take
+   */
+  maxTimeMS?: number;
+}
+
 export interface DeleteOptions {
   /**
    * Optional. If true, then when a delete statement fails, return without performing the remaining delete statements.
@@ -251,7 +325,7 @@ export interface AggregateOptions {
   bypassDocumentValidation?: boolean;
   /**
    * @default false
-   *Return document results as raw BSON buffers.
+   * Return document results as raw BSON buffers.
    */
   raw?: boolean;
   /**
@@ -545,3 +619,279 @@ export type Target = Constructor & {
 };
 
 export type TargetInstance = any;
+
+export interface DropIndexOptions {
+  /**
+   * Specifies the indexes to drop.
+   * To drop all but the _id index from the collection, specify "*".
+   * To drop a single index, specify either the index name, the index specification document (unless the index is a text index), or an array of the index name.
+   * To drop a text index, specify the index names instead of the index specification document.
+   * To drop multiple indexes (Available starting in MongoDB 4.2), specify an array of the index names.
+   * See https://docs.mongodb.com/manual/reference/command/dropIndexes/#mongodb-dbcommand-dbcmd.dropIndexes
+   */
+  index: string | IndexOptions | string[];
+
+  /** Optional. A document expressing the write concern. Omit to use the default write concern. */
+  writeConcern?: Document;
+
+  /** Optional. A user-provided comment to attach to this command. Once set */
+  comment?: Document;
+}
+
+type BitwiseType = Bson.Binary | Array<number> | number;
+
+type IntegerType = number | Bson.Int32 | Bson.Long;
+
+type NumericType = IntegerType | Bson.Decimal128 | Bson.Double;
+
+interface RootFilterOperators<T> extends Document {
+  $and?: Filter<T>[];
+  $nor?: Filter<T>[];
+  $or?: Filter<T>[];
+  $text?: {
+    $search: string;
+    $language?: string;
+    $caseSensitive?: boolean;
+    $diacriticSensitive?: boolean;
+  };
+  $where?: string;
+  $comment?: string | Document;
+}
+
+/**
+ * Operators for use in the search query.
+ *
+ * @see https://docs.mongodb.com/manual/reference/operator/query/
+ */
+interface FilterOperators<TValue> extends Document {
+  $eq?: TValue;
+  $gt?: TValue;
+  $gte?: TValue;
+  $in?: Array<TValue>;
+  $lt?: TValue;
+  $lte?: TValue;
+  $ne?: TValue;
+  $nin?: Array<TValue>;
+  $not?: FilterOperators<TValue>;
+  $exists?: boolean;
+  $expr?: Document;
+  $jsonSchema?: Document;
+  $mod?: TValue extends number ? [number, number] : never;
+  $regex?: string | RegExp | Bson.BSONRegExp;
+  $geoIntersects?: { $geometry: Document };
+  $geoWithin?: Document;
+  $near?: Document;
+  $nearSphere?: TValue;
+  $all?: Array<any>;
+  $size?: TValue extends Array<any> ? number : never;
+  $bitsAllClear?: BitwiseType;
+  $bitsAllSet?: BitwiseType;
+  $bitsAnyClear?: BitwiseType;
+  $elemMatch?: Document;
+  $rand?: Record<string, never>;
+}
+
+/**
+ * Operators for use in the update query.
+ *
+ * @see https://docs.mongodb.com/manual/reference/operator/update/
+ */
+interface UpdateOperators<T> extends Document {
+  $currentDate?: DocumentOperator<
+    T,
+    Bson.Timestamp | Date,
+    true | { $type: "date" | "timestamp" }
+  >;
+  $inc?: DocumentOperator<T, NumericType>;
+  $min?: DocumentOperator<T>;
+  $max?: DocumentOperator<T>;
+  $mul?: DocumentOperator<T, NumericType>;
+  $rename?: DocumentOperator<Omit<T, "_id">, string>;
+  $set?: DocumentOperator<T>;
+  $setOnInsert?: DocumentOperator<T>;
+  $unset?: DocumentOperator<T, any, "" | true | 1>;
+  $pop?: DocumentOperator<T, Array<any>, (1 | -1)>;
+  $pull?: {
+    [Key in KeysOfType<T, Array<any>>]?:
+      | Flatten<T[Key]>
+      | FilterOperators<Flatten<T[Key]>>;
+  };
+  $pullAll?: {
+    [Key in KeysOfType<T, Array<any>>]?: T[Key];
+  };
+  $push?: {
+    [Key in KeysOfType<T, Array<any>>]?: {
+      $each?: T[Key];
+      $slice?: number;
+      $position?: number;
+      $sort?: 1 | -1;
+    };
+  };
+  $bit?: DocumentOperator<
+    T,
+    NumericType,
+    { and: IntegerType } | { or: IntegerType } | { xor: IntegerType }
+  >;
+}
+
+/**
+ * Operators for use in the aggregation query.
+ *
+ * @see https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/
+ */
+type AggregateOperators =
+  | "$addFields"
+  | "$bucket"
+  | "$bucketAuto"
+  | "$collStats"
+  | "$count"
+  | "$currentOp"
+  | "$facet"
+  | "$geoNear"
+  | "$graphLookup"
+  | "$group"
+  | "$indexStats"
+  | "$limit"
+  | "$listLocalSessions"
+  | "$listSessions"
+  | "$lookup"
+  | "$match"
+  | "$merge"
+  | "$out"
+  | "$planCacheStats"
+  | "$project"
+  | "$redact"
+  | "$replaceRoot"
+  | "$replaceWith"
+  | "$sample"
+  | "$search"
+  | "$set"
+  | "$setWindowFields"
+  | "$skip"
+  | "$sort"
+  | "$sortByCount"
+  | "$unset"
+  | "$unwind";
+
+type DocumentOperator<T, OnlyType = any, Value = OnlyType> = IsAny<
+  OnlyType,
+  (Partial<T> & Document),
+  {
+    [key in KeysOfType<T, OnlyType>]?: Value;
+  }
+>;
+
+type NotImplementedOperators<Operators extends string, Value = any> = {
+  [Key in Operators]?: Value;
+};
+
+export type Filter<T> =
+  & NotImplementedOperators<"$type">
+  & RootFilterOperators<T>
+  & {
+    [Key in keyof T]?: T[Key] | FilterOperators<T[Key]>;
+  };
+
+export type UpdateFilter<T> =
+  & NotImplementedOperators<"$addToSet">
+  & UpdateOperators<T>
+  & Partial<T>;
+
+export type AggregatePipeline<T> =
+  & NotImplementedOperators<AggregateOperators>
+  & Document
+  & {
+    ["$match"]?: Filter<T>;
+  };
+
+type Flatten<T> = T extends Array<infer Item> ? Item : T;
+
+type IsAny<T, Y, N> = 0 extends (1 & T) ? Y : N;
+
+export type InsertDocument<TDocument extends { _id?: any }> =
+  & Omit<TDocument, "_id">
+  & {
+    _id?: TDocument["_id"] | Bson.ObjectId;
+  };
+
+type KeysOfType<T, Type> = {
+  [Key in keyof T]: NonNullable<T[Key]> extends Type ? Key : never;
+}[keyof T];
+
+/** The document returned by the buildInfo command. */
+export interface BuildInfo {
+  /**
+   * A string that conveys version information about the `mongod` instance.
+   * If you need to present version information to a human, this field is preferable to `versionArray`.
+   *
+   * This string will take the format `<major>.<minor>.<patch>` in the case of a release,
+   * but development builds may contain additional information.
+   */
+  version: string;
+
+  /** The commit identifier that identifies the state of the code used to build the mongod. */
+  gitVersion: string;
+
+  /**
+   * @deprecated since 3.2
+   * `buildInfo.sysInfo` no longer contains useful information.
+   */
+  sysInfo: string;
+
+  loaderFlags: string;
+
+  compilerFlags: string;
+
+  /**
+   * The memory allocator that mongod uses. By default this is tcmalloc.
+   */
+  allocator: string;
+
+  /**
+   * An array that conveys version information about the mongod instance.
+   * See version for a more readable version of this string.
+   */
+  versionArray: number[];
+
+  /**
+   * An embedded document describing the version of the TLS/SSL library that mongod
+   * was built with and is currently using.
+   */
+  openssl: Document;
+
+  /**
+   * A string that reports the JavaScript engine used in the mongod instance.
+   * By default, this is mozjs after version 3.2, and previously V8.
+   */
+  javascriptEngine: string;
+
+  /**
+   * A number that reflects the target processor architecture of the mongod binary.
+   */
+  bits: number;
+
+  /**
+   * A boolean. true when built with debugging options.
+   */
+  debug: boolean;
+
+  /**
+   * A number that reports the Maximum BSON Document Size.
+   */
+  maxBsonObjectSize: number;
+
+  /**
+   * A list of storage engines available to the mongod server.
+   */
+  storageEngines: string[];
+
+  ok: number;
+}
+
+export const enum ReadPreference {
+  Primary = "primary",
+  PrimaryPreferred = "primaryPreferred",
+  Secondary = "secondary",
+  SecondaryPreferred = "secondaryPreferred",
+  Nearest = "nearest",
+}

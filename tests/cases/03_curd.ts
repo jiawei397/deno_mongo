@@ -1,10 +1,11 @@
+// deno-lint-ignore-file no-explicit-any
 import { testWithClient } from "../common.ts";
 import { assert, assertEquals, assertThrowsAsync } from "../test.deps.ts";
 
 interface IUser {
-  username: string;
-  password: string;
-  _id: { $oid: string };
+  username?: string;
+  password?: string;
+  _id: string;
   uid?: number;
   date?: Date;
 }
@@ -110,7 +111,7 @@ export default function curdTests() {
 
   testWithClient("testInsertMany", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const { insertedCount, insertedIds } = await users.insertMany([
       {
         username: "many",
@@ -126,6 +127,40 @@ export default function curdTests() {
     assertEquals(insertedIds.length, 2);
   });
 
+  testWithClient("testFindAndModify-update", async (client) => {
+    const db = client.database("test");
+    const users = db.collection<{ username: string; counter: number }>(
+      "find_and_modify",
+    );
+    await users.insertOne({ username: "counter", counter: 5 });
+    const updated = await users.findAndModify({ username: "counter" }, {
+      update: { $inc: { counter: 1 } },
+      new: true,
+    });
+
+    assert(updated !== undefined);
+    assertEquals(updated.counter, 6);
+    assertEquals(updated.username, "counter");
+  });
+
+  testWithClient("testFindAndModify-delete", async (client) => {
+    const db = client.database("test");
+    const users = db.collection<{ username: string; counter: number }>(
+      "find_and_modify",
+    );
+    await users.insertOne({ username: "delete", counter: 10 });
+    const updated = await users.findAndModify({ username: "delete" }, {
+      remove: true,
+    });
+
+    assert(updated !== undefined);
+    assertEquals(updated.counter, 10);
+    assertEquals(updated.username, "delete");
+
+    const tryFind = await users.findOne({ username: "delete" });
+    assertEquals(tryFind, undefined);
+  });
+
   testWithClient("test chain call for Find", async (client) => {
     const db = client.database("test");
     const users = db.collection<IUser>("mongo_test_users");
@@ -135,7 +170,7 @@ export default function curdTests() {
 
   testWithClient("testUpdateOne", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const result = await users.updateOne({}, { username: "USER1" });
     assertEquals(result, {
       matchedCount: 1,
@@ -147,7 +182,7 @@ export default function curdTests() {
 
   testWithClient("testUpdateOneWithUpsert", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const result = await users.updateOne(
       { username: "user2" },
       { username: "USER2" },
@@ -160,7 +195,7 @@ export default function curdTests() {
 
   testWithClient("testDeleteOne", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const deleteCount = await users.deleteOne({});
     assertEquals(deleteCount, 1);
   });
@@ -179,7 +214,7 @@ export default function curdTests() {
 
   testWithClient("testFind", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const findUsers = await users
       .find({ username: "many" }, { skip: 1, limit: 1 })
       .toArray();
@@ -192,7 +227,7 @@ export default function curdTests() {
 
   testWithClient("test multiple queries at the same time", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
 
     const result = await Promise.all([
       users.findOne({}, { projection: { username: 1 } }),
@@ -209,14 +244,31 @@ export default function curdTests() {
 
   testWithClient("testCount", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const count = await users.count({ username: "many" });
     assertEquals(count, 2);
   });
 
+  testWithClient("testCountDocuments", async (client) => {
+    const db = client.database("test");
+    const users = db.collection<IUser>("mongo_test_users");
+    const countAll = await users.countDocuments();
+    assertEquals(countAll, 4);
+
+    const count = await users.countDocuments({ username: "many" });
+    assertEquals(count, 2);
+  });
+
+  testWithClient("testEstimatedDocumentCount", async (client) => {
+    const db = client.database("test");
+    const users = db.collection<IUser>("mongo_test_users");
+    const count = await users.estimatedDocumentCount();
+    assertEquals(count, 4);
+  });
+
   testWithClient("testAggregation", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const docs = await users
       .aggregate([
         { $match: { username: "many" } },
@@ -228,7 +280,7 @@ export default function curdTests() {
 
   testWithClient("testUpdateMany", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const result = await users.updateMany(
       { username: "many" },
       { $set: { username: "MANY" } },
@@ -243,7 +295,7 @@ export default function curdTests() {
 
   testWithClient("testDeleteMany", async (client) => {
     const db = client.database("test");
-    const users = db.collection("mongo_test_users");
+    const users = db.collection<IUser>("mongo_test_users");
     const deleteCount = await users.deleteMany({ username: "MANY" });
     assertEquals(deleteCount, 2);
   });
@@ -265,7 +317,7 @@ export default function curdTests() {
     const db = client.database("test");
     const users = db.collection<IUser>("mongo_test_users");
 
-    const condition = { uid: { $ne: null } };
+    const condition = { uid: { $exists: true } };
 
     // prepare data
     for (let i = 0; i < 10; i++) {

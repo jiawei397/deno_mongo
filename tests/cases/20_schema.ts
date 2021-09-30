@@ -1,10 +1,11 @@
+// deno-lint-ignore-file no-explicit-any
 // deno run -A --unstable tests/cases/20_schema.ts
 import { Schema } from "../../src/schema.ts";
 import { Document, MongoHookMethod, UpdateOptions } from "../../src/types.ts";
-import { getDB, getMetadata, getModel, Prop, TYPE_METADATA_KEY } from "../../src/utils/helper.ts";
+import { getDB, getMetadata, getModel, Prop } from "../../src/utils/helper.ts";
 
-// const db = await getDB("mongodb://192.168.21.176:27018/test");
-const db = await getDB("mongodb://localhost:27018/test");
+const db = await getDB("mongodb://192.168.21.176:27018/test");
+// const db = await getDB("mongodb://localhost:27018/test");
 
 class User extends Schema {
   _id!: string;
@@ -19,7 +20,6 @@ class User extends Schema {
   })
   age!: number;
 }
-
 
 class Role extends Schema {
   _id!: string;
@@ -39,7 +39,7 @@ console.log(User.getMeta());
 console.log(Role.getMeta());
 console.log(Schema.getMeta());
 
-console.log(getMetadata(User, 'age'))
+console.log(getMetadata(User, "age"));
 
 User.pre(
   MongoHookMethod.update,
@@ -67,7 +67,7 @@ User.post(MongoHookMethod.findMany, function (docs) {
 User.post(MongoHookMethod.findOne, function (doc) {
   console.log("----post--findOne--", doc);
   if (!doc) {
-    return
+    return;
   }
   doc["inserted"] = "MongoHookMethod.find";
 });
@@ -93,7 +93,7 @@ const res = await model.findByIdAndUpdate("613f1b073764056ec091fac2", {
       "bbb",
     ],
     "username": "式",
-    "age": 222
+    "age": 222,
   },
 }, {
   new: true,

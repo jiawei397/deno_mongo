@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import { green, yellow } from "../../deps.ts";
 import { MongoClient } from "../client.ts";
 import { Collection } from "../collection/collection.ts";
@@ -17,7 +18,6 @@ export function getInstance(cls: Target) {
   instanceCache.set(cls, instance);
   return instance;
 }
-
 
 let connectedPromise: Promise<any>;
 const client = new MongoClient();
@@ -79,7 +79,7 @@ export async function initModel(model: Collection<unknown>, cls: SchemaCls) {
       continue;
     }
     indexes.push({
-      name: key + '_1',
+      name: key + "_1",
       key: { [key]: 1 },
       unique: map.unique,
       sparse: map.sparse,
@@ -115,7 +115,7 @@ export function getMetadata(
 ) {
   const map = metadataCache.get(getInstance(target));
   if (propertyKey) {
-    return map[propertyKey]
+    return map[propertyKey];
   }
   return map;
 }
@@ -138,7 +138,7 @@ export class BaseService {
 }
 
 export function logTime(
-  target: any,
+  _: any,
   name: string,
   descriptor: any,
 ) {

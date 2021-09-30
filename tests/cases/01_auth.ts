@@ -17,7 +17,7 @@ interface PasswordValid {
   digest: string;
 }
 
-const passwordValdis: PasswordValid[] = [
+const passwordValids: PasswordValid[] = [
   {
     username: "user",
     password: "pencil",
@@ -31,7 +31,7 @@ const passwordValdis: PasswordValid[] = [
 ];
 
 export default function authTests() {
-  passwordValdis.forEach(({ username, password, digest }) => {
+  for (const { username, password, digest } of passwordValids) {
     Deno.test({
       name: `passwordDigest:${username}:${password}`,
       fn() {
@@ -39,7 +39,7 @@ export default function authTests() {
         assertEquals(digestRes, digest);
       },
     });
-  });
+  }
 
   Deno.test({
     name: "clientFirstMessageBare",
@@ -75,9 +75,9 @@ export default function authTests() {
   Deno.test({
     name: "cleanUsername",
     fn() {
-      const username: string = "first=12,last=34";
-      const expected: string = "first=3D12=2Clast=34";
-      const result: string = cleanUsername(username);
+      const username = "first=12,last=34";
+      const expected = "first=3D12=2Clast=34";
+      const result = cleanUsername(username);
       assertEquals(expected, result);
     },
   });
@@ -97,7 +97,7 @@ export default function authTests() {
       );
       assertEquals(
         saltedPassword,
-        [
+        Uint8Array.from([
           72,
           84,
           156,
@@ -118,7 +118,7 @@ export default function authTests() {
           110,
           78,
           230,
-        ],
+        ]),
       );
     },
   });

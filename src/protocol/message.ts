@@ -41,7 +41,7 @@ function serializeSections(
     } else {
       const identifier = encoder.encode(section.identifier + "\0");
       let documentsLength = 0;
-      let docs = section.documents.map((doc) => {
+      const docs = section.documents.map((doc) => {
         const document = serializeBson(doc);
         documentsLength += document.byteLength;
         return document;
@@ -76,10 +76,10 @@ export function serializeMessage(message: Message): Uint8Array[] {
   view.setInt32(0, message.flags ?? 0, true);
 
   let pos = 4;
-  sections.forEach((section) => {
+  for (const section of sections) {
     buffer.set(section, pos);
     pos += section.byteLength;
-  });
+  }
 
   const header = serializeHeader({
     messageLength: 16 + buffer.byteLength,

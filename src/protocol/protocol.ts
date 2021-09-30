@@ -1,5 +1,5 @@
-import { assert, BufReader, Deferred, deferred } from "../../deps.ts";
-import { MongoError, MongoErrorInfo } from "../error.ts";
+import { assert, BufReader, Deferred, deferred, writeAll } from "../../deps.ts";
+import { MongoErrorInfo, MongoServerError } from "../error.ts";
 import { Document } from "../types.ts";
 import { handshake } from "./handshake.ts";
 import { parseHeader } from "./header.ts";
@@ -22,7 +22,7 @@ export class WireProtocol {
   #reader: BufReader;
   #commandQueue: CommandTask[] = [];
 
-  #connectionId: number = 0;
+  #connectionId = 0;
 
   constructor(socket: Socket) {
     this.#socket = socket;
@@ -38,7 +38,7 @@ export class WireProtocol {
     const [doc] = await this.command<MongoErrorInfo | T>(db, body);
     const maybeError = doc as MongoErrorInfo;
     if (maybeError.ok === 0) {
-      throw new MongoError(maybeError);
+      throw new MongoServerError(maybeError);
     }
     return doc as T;
   }
@@ -60,13 +60,13 @@ export class WireProtocol {
 
     let documents: T[] = [];
 
-    message?.sections.forEach((section) => {
+    for (const section of message?.sections!) {
       if ("document" in section) {
         documents.push(section.document as T);
       } else {
         documents = documents.concat(section.documents as T[]);
       }
-    });
+    }
 
     return documents;
   }
@@ -90,7 +90,7 @@ export class WireProtocol {
       });
 
       for (const chunk of chunks) {
-        await Deno.writeAll(this.#socket, chunk);
+        await writeAll(this.#socket, chunk);
       }
     }
     this.#isPendingRequest = false;

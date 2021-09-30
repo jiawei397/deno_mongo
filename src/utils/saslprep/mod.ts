@@ -1,6 +1,7 @@
 //ORIGINAL PROJECT AND LICENSE IN: https://github.com/chiefbiiko/saslprep
 //ORIGINAL PROJECT AND LICENSE IN: https://github.com/chiefbiiko/sparse-bitfield
 //ORIGINAL PROJECT AND LICENSE IN: https://github.com/chiefbiiko/memory-pager
+// deno-lint-ignore-file no-explicit-any camelcase
 import { Bitfield } from "./deps.ts";
 import { loadCodePoints } from "./loadCodePoints.ts";
 
@@ -54,7 +55,7 @@ function toCodePoints(input: string): number[] {
   const codepoints = [];
   const size = input.length;
 
-  for (let i: number = 0; i < size; i += 1) {
+  for (let i = 0; i < size; i += 1) {
     const before: number = input.charCodeAt(i);
 
     if (before >= 0xd800 && before <= 0xdbff && size > i + 1) {

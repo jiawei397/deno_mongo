@@ -1,5 +1,5 @@
 import { Hooks, MongoHookCallback, MongoHookMethod } from "./types.ts";
-import { getMetadata, Prop, TYPE_METADATA_KEY } from "./utils/helper.ts";
+import { getMetadata, Prop } from "./utils/helper.ts";
 
 export class Schema {
   static preHooks: Hooks = new Map();
@@ -32,7 +32,7 @@ export class Schema {
     return {
       ...baseMap,
       ...map,
-    }
+    };
   }
 
   static getPreHookByMethod(
@@ -48,13 +48,12 @@ export class Schema {
   }
 
   @Prop({
-    default: Date.now
+    default: Date.now,
   })
   createTime!: Date;
 
-
   @Prop({
-    default: Date.now
+    default: Date.now,
   })
   modifyTime!: Date;
 }

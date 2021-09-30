@@ -1,4 +1,4 @@
-import { assert } from "../test.deps.ts";
+import { assert, assertEquals } from "../test.deps.ts";
 import { MongoClient } from "../../src/client.ts";
 
 // const hostname = "127.0.0.1";
@@ -25,7 +25,7 @@ export default function connectTests() {
     client.close();
   });
 
-  Deno.test("testconnect With Options", async () => {
+  Deno.test("test connect With Options", async () => {
     const client = new MongoClient();
     await client.connect({
       servers: [{ host: hostname, port }],
@@ -34,6 +34,14 @@ export default function connectTests() {
     const names = await client.listDatabases();
     assert(names instanceof Array);
     assert(names.length > 0);
+    client.close();
+  });
+
+  Deno.test("test default database name from connection options", async () => {
+    const client = new MongoClient();
+    await client.connect(`mongodb://${hostname}:27017/my-db`);
+    const db = client.database();
+    assertEquals(db.name, "my-db");
     client.close();
   });
 }

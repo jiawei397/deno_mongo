@@ -42,15 +42,12 @@ export class Database {
     );
   }
 
-  listCollections(options?: {
+  listCollections(options: {
     filter?: Document;
     nameOnly?: boolean;
     authorizedCollections?: boolean;
     comment?: Document;
-  }): CommandCursor<ListCollectionsResult> {
-    if (!options) {
-      options = {};
-    }
+  } = {}): CommandCursor<ListCollectionsResult> {
     return new CommandCursor<ListCollectionsResult>(
       this.#cluster.protocol,
       async () => {
@@ -59,7 +56,6 @@ export class Database {
         >(this.name, {
           listCollections: 1,
           ...options,
-          batchSize: 1,
         });
         return {
           id: cursor.id,
@@ -70,11 +66,11 @@ export class Database {
     );
   }
 
-  async listCollectionNames(options?: {
+  async listCollectionNames(options: {
     filter?: Document;
     authorizedCollections?: boolean;
     comment?: Document;
-  }): Promise<string[]> {
+  } = {}): Promise<string[]> {
     const cursor = this.listCollections({
       ...options,
       nameOnly: true,
@@ -82,7 +78,7 @@ export class Database {
     });
     const names: string[] = [];
     for await (const item of cursor) {
-      names.push(item!.name);
+      names.push(item.name);
     }
     return names;
   }
@@ -105,10 +101,10 @@ export class Database {
     });
   }
 
-  async dropUser(username: string, options?: {
+  async dropUser(username: string, options: {
     writeConcern?: Document;
     comment?: Document;
-  }) {
+  } = {}) {
     await this.#cluster.protocol.commandSingle(this.name, {
       dropUser: username,
       writeConcern: options?.writeConcern,
