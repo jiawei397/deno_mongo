@@ -16,7 +16,7 @@ export default function cleanup() {
         .drop().catch((e) => e);
       await new GridFSBucket(db, { bucketName: "delete" })
         .drop().catch((e) => e);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
     }
   });

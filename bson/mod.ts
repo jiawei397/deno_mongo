@@ -214,15 +214,15 @@ export declare interface BSONSymbolExtended {
  * @public
  */
 export declare function calculateObjectSize(
-    object: Document,
-    options?: CalculateObjectSizeOptions,
+  object: Document,
+  options?: CalculateObjectSizeOptions,
 ): number;
 
 /** @public */
 export declare type CalculateObjectSizeOptions = Pick<
-    SerializeOptions,
-    "serializeFunctions" | "ignoreUndefined"
-    >;
+  SerializeOptions,
+  "serializeFunctions" | "ignoreUndefined"
+>;
 
 /**
  * A class representation of the BSON Code type.
@@ -264,10 +264,10 @@ export declare class DBRef {
    * @param db - optional db name, if omitted the reference is local to the current db.
    */
   constructor(
-      collection: string,
-      oid: ObjectId,
-      db?: string,
-      fields?: Document,
+    collection: string,
+    oid: ObjectId,
+    db?: string,
+    fields?: Document,
   );
   /* Excluded from this release type: namespace */
   /* Excluded from this release type: namespace */
@@ -318,8 +318,8 @@ export declare interface Decimal128Extended {
  * @public
  */
 export declare function deserialize(
-    buffer: Buffer | ArrayBufferView | ArrayBuffer,
-    options?: DeserializeOptions,
+  buffer: Buffer | ArrayBufferView | ArrayBuffer,
+  options?: DeserializeOptions,
 ): Document;
 
 /** @public */
@@ -364,12 +364,12 @@ export declare interface DeserializeOptions {
  * @public
  */
 export declare function deserializeStream(
-    data: Buffer | ArrayBufferView | ArrayBuffer,
-    startIndex: number,
-    numberOfDocuments: number,
-    documents: Document[],
-    docStartIndex: number,
-    options: DeserializeOptions,
+  data: Buffer | ArrayBufferView | ArrayBuffer,
+  startIndex: number,
+  numberOfDocuments: number,
+  documents: Document[],
+  docStartIndex: number,
+  options: DeserializeOptions,
 ): number;
 
 /** @public */
@@ -439,14 +439,14 @@ export declare namespace EJSON {
    * ```
    */
   export function parse(
-      text: string,
-      options?: EJSON.Options,
+    text: string,
+    options?: EJSON.Options,
   ): SerializableTypes;
   export type JSONPrimitive = string | number | boolean | null;
   export type SerializableTypes =
-      | Document
-      | Array<JSONPrimitive | Document>
-      | JSONPrimitive;
+    | Document
+    | Array<JSONPrimitive | Document>
+    | JSONPrimitive;
   /**
    * Converts a BSON document to an Extended JSON string, optionally replacing values if a replacer
    * function is specified or optionally including only the specified properties if a replacer array
@@ -472,8 +472,8 @@ export declare namespace EJSON {
    */
   export function stringify(value: SerializableTypes): string;
   export function stringify(
-      value: SerializableTypes,
-      options?: EJSON.Options,
+    value: SerializableTypes,
+    options?: EJSON.Options,
   ): string;
   /**
    * Serializes an object to an Extended JSON string, and reparse it as a JavaScript object.
@@ -482,8 +482,8 @@ export declare namespace EJSON {
    * @param options - Optional settings passed to the `stringify` function
    */
   export function serialize(
-      value: SerializableTypes,
-      options?: EJSON.Options,
+    value: SerializableTypes,
+    options?: EJSON.Options,
   ): Document;
   /**
    * Deserializes an Extended JSON object into a plain JavaScript object with native/BSON types
@@ -492,8 +492,8 @@ export declare namespace EJSON {
    * @param options - Optional settings passed to the parse method
    */
   export function deserialize(
-      ejson: Document,
-      options?: EJSON.Options,
+    ejson: Document,
+    options?: EJSON.Options,
   ): SerializableTypes;
 }
 
@@ -663,12 +663,12 @@ export declare class Long {
    * @param unsigned - Whether unsigned or not, defaults to signed
    */
   static fromValue(
-      val: number | string | {
-        low: number;
-        high: number;
-        unsigned?: boolean;
-      },
-      unsigned?: boolean,
+    val: number | string | {
+      low: number;
+      high: number;
+      unsigned?: boolean;
+    },
+    unsigned?: boolean,
   ): Long;
   /** Returns the sum of this and the specified Long. */
   add(addend: string | number | Long | Timestamp): Long;
@@ -853,9 +853,9 @@ export declare interface LongExtended {
 
 /** @public */
 export declare type LongWithoutOverrides = new (
-    low: number | Long,
-    high?: number,
-    unsigned?: boolean,
+  low: number | Long,
+  high?: number,
+  unsigned?: boolean,
 ) => {
   [P in Exclude<keyof Long, TimestampOverrides>]: Long[P];
 };
@@ -963,7 +963,7 @@ declare class ObjectId {
    * @param id - ObjectId instance to validate.
    */
   static isValid(
-      id: number | string | ObjectId | Buffer | ObjectIdLike,
+    id: number | string | ObjectId | Buffer | ObjectIdLike,
   ): boolean;
   /* Excluded from this release type: toExtendedJSON */
   /* Excluded from this release type: fromExtendedJSON */
@@ -990,8 +990,8 @@ export declare interface ObjectIdLike {
  * @public
  */
 export declare function serialize(
-    object: Document,
-    options?: SerializeOptions,
+  object: Document,
+  options?: SerializeOptions,
 ): Buffer;
 
 /** @public */
@@ -1017,9 +1017,9 @@ export declare interface SerializeOptions {
  * @public
  */
 export declare function serializeWithBufferAndIndex(
-    object: Document,
-    finalBuffer: Buffer,
-    options?: SerializeOptions,
+  object: Document,
+  finalBuffer: Buffer,
+  options?: SerializeOptions,
 ): number;
 
 /**
@@ -1078,9 +1078,9 @@ export declare interface TimestampExtended {
 
 /** @public */
 export declare type TimestampOverrides =
-    | "_bsontype"
-    | "toExtendedJSON"
-    | "fromExtendedJSON";
+  | "_bsontype"
+  | "toExtendedJSON"
+  | "fromExtendedJSON";
 
 /** @public */
 export declare interface UUIDExtended {
