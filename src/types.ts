@@ -698,10 +698,10 @@ interface FilterOperators<TValue> extends Document {
  */
 interface UpdateOperators<T> extends Document {
   $currentDate?: DocumentOperator<
-      T,
-      Bson.Timestamp | Date,
-      true | { $type: "date" | "timestamp" }
-      >;
+    T,
+    Bson.Timestamp | Date,
+    true | { $type: "date" | "timestamp" }
+  >;
   $inc?: DocumentOperator<T, NumericType>;
   $min?: DocumentOperator<T>;
   $max?: DocumentOperator<T>;
@@ -728,10 +728,10 @@ interface UpdateOperators<T> extends Document {
     };
   };
   $bit?: DocumentOperator<
-      T,
-      NumericType,
-      { and: IntegerType } | { or: IntegerType } | { xor: IntegerType }
-      >;
+    T,
+    NumericType,
+    { and: IntegerType } | { or: IntegerType } | { xor: IntegerType }
+  >;
 }
 
 /**
@@ -740,79 +740,79 @@ interface UpdateOperators<T> extends Document {
  * @see https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/
  */
 type AggregateOperators =
-    | "$addFields"
-    | "$bucket"
-    | "$bucketAuto"
-    | "$collStats"
-    | "$count"
-    | "$currentOp"
-    | "$facet"
-    | "$geoNear"
-    | "$graphLookup"
-    | "$group"
-    | "$indexStats"
-    | "$limit"
-    | "$listLocalSessions"
-    | "$listSessions"
-    | "$lookup"
-    | "$match"
-    | "$merge"
-    | "$out"
-    | "$planCacheStats"
-    | "$project"
-    | "$redact"
-    | "$replaceRoot"
-    | "$replaceWith"
-    | "$sample"
-    | "$search"
-    | "$set"
-    | "$setWindowFields"
-    | "$skip"
-    | "$sort"
-    | "$sortByCount"
-    | "$unset"
-    | "$unwind";
+  | "$addFields"
+  | "$bucket"
+  | "$bucketAuto"
+  | "$collStats"
+  | "$count"
+  | "$currentOp"
+  | "$facet"
+  | "$geoNear"
+  | "$graphLookup"
+  | "$group"
+  | "$indexStats"
+  | "$limit"
+  | "$listLocalSessions"
+  | "$listSessions"
+  | "$lookup"
+  | "$match"
+  | "$merge"
+  | "$out"
+  | "$planCacheStats"
+  | "$project"
+  | "$redact"
+  | "$replaceRoot"
+  | "$replaceWith"
+  | "$sample"
+  | "$search"
+  | "$set"
+  | "$setWindowFields"
+  | "$skip"
+  | "$sort"
+  | "$sortByCount"
+  | "$unset"
+  | "$unwind";
 
 type DocumentOperator<T, OnlyType = any, Value = OnlyType> = IsAny<
-    OnlyType,
-    (Partial<T> & Document),
-    {
-      [key in KeysOfType<T, OnlyType>]?: Value;
-    }
-    >;
+  OnlyType,
+  (Partial<T> & Document),
+  {
+    [key in KeysOfType<T, OnlyType>]?: Value;
+  }
+>;
 
 type NotImplementedOperators<Operators extends string, Value = any> = {
   [Key in Operators]?: Value;
 };
 
 export type Filter<T> =
-    & NotImplementedOperators<"$type">
-    & RootFilterOperators<T>
-    & {
-  [Key in keyof T]?: T[Key] | FilterOperators<T[Key]>;
-};
+  & NotImplementedOperators<"$type">
+  & RootFilterOperators<T>
+  & {
+    [Key in keyof T]?: T[Key] | FilterOperators<T[Key]>;
+  };
 
 export type UpdateFilter<T> =
-    & NotImplementedOperators<"$addToSet">
-    & UpdateOperators<T>
-    & Partial<T>;
+  & NotImplementedOperators<"$addToSet">
+  & UpdateOperators<T>
+  & Partial<T>;
 
 export type AggregatePipeline<T> =
-    & NotImplementedOperators<AggregateOperators>
-    & Document
-    & {
-  ["$match"]?: Filter<T>;
-};
+  & NotImplementedOperators<AggregateOperators>
+  & Document
+  & {
+    ["$match"]?: Filter<T>;
+  };
 
 type Flatten<T> = T extends Array<infer Item> ? Item : T;
 
 type IsAny<T, Y, N> = 0 extends (1 & T) ? Y : N;
 
 export type InsertDocument<TDocument extends { _id?: any }> =
-    & Omit<TDocument, "_id">
-    & {
-  _id?: TDocument["_id"] | Bson.ObjectId;
-};
+  & Omit<TDocument, "_id">
+  & {
+    _id?: TDocument["_id"] | Bson.ObjectId;
+  };
 
 type KeysOfType<T, Type> = {
   [Key in keyof T]: NonNullable<T[Key]> extends Type ? Key : never;

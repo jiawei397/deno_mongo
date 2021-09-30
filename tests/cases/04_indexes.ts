@@ -12,13 +12,13 @@ export default function indexesTests() {
       }],
     });
     assertEquals(
-        res,
-        {
-          createdCollectionAutomatically: false,
-          numIndexesBefore: 1,
-          numIndexesAfter: 2,
-          ok: 1,
-        },
+      res,
+      {
+        createdCollectionAutomatically: false,
+        numIndexesBefore: 1,
+        numIndexesAfter: 2,
+        ok: 1,
+      },
     );
   });
 
@@ -28,24 +28,25 @@ export default function indexesTests() {
     const cursor = users.listIndexes();
     const indexes = await cursor.toArray();
     assertEquals(
-        indexes,
-        [
-          { v: 2, key: { _id: 1 }, name: "_id_" },
-          { v: 2, key: { name: 1 }, name: "_name" },
-        ]);
+      indexes,
+      [
+        { v: 2, key: { _id: 1 }, name: "_id_" },
+        { v: 2, key: { name: 1 }, name: "_name" },
+      ],
+    );
 
     const expected = semver.gte(client.buildInfo!.version, "4.4.0")
-        ? [
-          { v: 2, key: { _id: 1 }, name: "_id_" },
-          { v: 2, key: { name: 1 }, name: "_name" },
-        ]
-        : [
-          { v: 2, key: { _id: 1 }, name: "_id_", ns: "test.mongo_test_users" },
-          { v: 2, key: { name: 1 }, name: "_name", ns: "test.mongo_test_users" },
-        ];
+      ? [
+        { v: 2, key: { _id: 1 }, name: "_id_" },
+        { v: 2, key: { name: 1 }, name: "_name" },
+      ]
+      : [
+        { v: 2, key: { _id: 1 }, name: "_id_", ns: "test.mongo_test_users" },
+        { v: 2, key: { name: 1 }, name: "_name", ns: "test.mongo_test_users" },
+      ];
     assertEquals(
-        indexes,
-        expected,
+      indexes,
+      expected,
     );
   });
 
@@ -66,15 +67,15 @@ export default function indexesTests() {
 
     const indexes = await users.listIndexes().toArray();
     const expected = semver.gte(client.buildInfo!.version, "4.4.0")
-        ? [
-          { v: 2, key: { _id: 1 }, name: "_id_" },
-        ]
-        : [
-          { v: 2, key: { _id: 1 }, name: "_id_", ns: "test.mongo_test_users" },
-        ];
+      ? [
+        { v: 2, key: { _id: 1 }, name: "_id_" },
+      ]
+      : [
+        { v: 2, key: { _id: 1 }, name: "_id_", ns: "test.mongo_test_users" },
+      ];
     assertEquals(
-        indexes,
-        expected,
+      indexes,
+      expected,
     );
   });
 }

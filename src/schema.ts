@@ -32,7 +32,7 @@ export class Schema {
     return {
       ...baseMap,
       ...map,
-    }
+    };
   }
 
   static getPreHookByMethod(
@@ -48,13 +48,12 @@ export class Schema {
   }
 
   @Prop({
-    default: Date.now
+    default: Date.now,
   })
   createTime!: Date;
 
-
   @Prop({
-    default: Date.now
+    default: Date.now,
   })
   modifyTime!: Date;
 }

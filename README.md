@@ -237,7 +237,6 @@ const featuredUser = await users.find({}, {
   },
 });
 
-
 // GridFS Upload
 const bucket = new GridFSBucket(db);
 const upstream = bucket.openUploadStream("test.txt");

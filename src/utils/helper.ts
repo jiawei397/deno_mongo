@@ -18,7 +18,6 @@ export function getInstance(cls: Target) {
   return instance;
 }
 
-
 let connectedPromise: Promise<any>;
 const client = new MongoClient();
 let modelCaches: Map<SchemaCls, any> | undefined;
@@ -79,7 +78,7 @@ export async function initModel(model: Collection<unknown>, cls: SchemaCls) {
       continue;
     }
     indexes.push({
-      name: key + '_1',
+      name: key + "_1",
       key: { [key]: 1 },
       unique: map.unique,
       sparse: map.sparse,
@@ -115,7 +114,7 @@ export function getMetadata(
 ) {
   const map = metadataCache.get(getInstance(target));
   if (propertyKey) {
-    return map[propertyKey]
+    return map[propertyKey];
   }
   return map;
 }

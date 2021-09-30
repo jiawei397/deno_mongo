@@ -27,7 +27,7 @@ export class MongoClient {
   public connectedCount = 0;
 
   async connectDB(
-      options: ConnectOptions,
+    options: ConnectOptions,
   ): Promise<Database> {
     this.#defaultDbName = options.db;
     const cluster = new Cluster(options);
@@ -43,12 +43,12 @@ export class MongoClient {
   }
 
   async connect(
-      options: ConnectOptions | string,
+    options: ConnectOptions | string,
   ): Promise<Database> {
     try {
       const parsedOptions = typeof options === "string"
-          ? await parse(options)
-          : options;
+        ? await parse(options)
+        : options;
       const cacheKey = JSON.stringify(parsedOptions.servers);
       if (this.#connectionCache.has(cacheKey)) {
         return this.#connectionCache.get(cacheKey);
@@ -100,5 +100,4 @@ export class MongoClient {
     this.#connectionCache.clear();
     this.connectedCount = 0;
   }
-
 }

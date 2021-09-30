@@ -31,14 +31,14 @@ export class Database {
   }
 
   collection<T>(
-      name: string,
-      schema?: SchemaCls,
+    name: string,
+    schema?: SchemaCls,
   ): Collection<T> {
     return new Collection(
-        this.#cluster.protocol,
-        this.name,
-        name,
-        schema,
+      this.#cluster.protocol,
+      this.name,
+      name,
+      schema,
     );
   }
 
@@ -49,20 +49,20 @@ export class Database {
     comment?: Document;
   } = {}): CommandCursor<ListCollectionsResult> {
     return new CommandCursor<ListCollectionsResult>(
-        this.#cluster.protocol,
-        async () => {
-          const { cursor } = await this.#cluster.protocol.commandSingle<
-              ListCollectionsReponse
-              >(this.name, {
-            listCollections: 1,
-            ...options,
-          });
-          return {
-            id: cursor.id,
-            ns: cursor.ns,
-            firstBatch: cursor.firstBatch,
-          };
-        },
+      this.#cluster.protocol,
+      async () => {
+        const { cursor } = await this.#cluster.protocol.commandSingle<
+          ListCollectionsReponse
+        >(this.name, {
+          listCollections: 1,
+          ...options,
+        });
+        return {
+          id: cursor.id,
+          ns: cursor.ns,
+          firstBatch: cursor.firstBatch,
+        };
+      },
     );
   }
 
@@ -84,9 +84,9 @@ export class Database {
   }
 
   async createUser(
-      username: string,
-      password: string,
-      options?: CreateUserOptions,
+    username: string,
+    password: string,
+    options?: CreateUserOptions,
   ) {
     await this.#cluster.protocol.commandSingle(this.name, {
       createUser: options?.username ?? username,
