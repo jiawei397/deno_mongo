@@ -6,12 +6,13 @@ extend some API.
 > **deno_mongo** is a **MongoDB** database driver developed for deno
 
 [![tag](https://img.shields.io/github/tag/manyuanrong/deno_mongo.svg)](https://github.com/manyuanrong/deno_mongo/releases)
-[![Build Status](https://github.com/manyuanrong/deno_mongo/workflows/ci/badge.svg?branch=master)](https://github.com/manyuanrong/deno_mongo/actions)
+[![Build Status](https://github.com/manyuanrong/deno_mongo/workflows/ci/badge.svg?branch=main)](https://github.com/manyuanrong/deno_mongo/actions)
 [![license](https://img.shields.io/github/license/manyuanrong/deno_mongo.svg)](https://github.com/manyuanrong/deno_mongo)
 [![tag](https://img.shields.io/badge/deno-v1.8.1-green.svg)](https://github.com/denoland/deno)
 
 ## Links
 
+- [Docs](https://doc.deno.land/https/deno.land/x/mongo/mod.ts)
 - [Guides]() TODO
 - [Examples]() TODO
 - [Benchmarks]() TODO
@@ -24,11 +25,11 @@ import {
   getModel,
   Prop,
   Schema,
-} from "https://deno.land/x/jw_mongo@v0.24.3/mod.ts";
+} from "https://deno.land/x/jw_mongo/mod.ts";
 import type {
   Document,
   MongoHookMethod,
-} from "https://deno.land/x/jw_mongo@v0.24.3/mod.ts";
+} from "https://deno.land/x/jw_mongo/mod.ts";
 
 const db = await getDB("mongodb://localhost:27017");
 
@@ -114,7 +115,7 @@ await model.insertOne({
 Below is origin example:
 
 ```ts
-import { Bson, MongoClient } from "https://deno.land/x/mongo@v0.22.0/mod.ts";
+import { Bson, MongoClient } from "https://deno.land/x/jw_mongo/mod.ts";
 
 const client = new MongoClient();
 
@@ -235,6 +236,19 @@ const featuredUser = await users.find({}, {
     age: -1,
   },
 });
+
+
+// GridFS Upload
+const bucket = new GridFSBucket(db);
+const upstream = bucket.openUploadStream("test.txt");
+
+const writer = upstream.getWriter();
+writer.write(fileContents);
+
+await writer.close();
+
+//GridFS Download
+const file = await new Response(bucket.openDownloadStream(id)).text();
 ```
 
 ## Contributing

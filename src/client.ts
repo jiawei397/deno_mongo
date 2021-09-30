@@ -1,13 +1,23 @@
 import { Database } from "./database.ts";
-import { ConnectOptions, Document, ListDatabaseInfo } from "./types.ts";
+import {
+  BuildInfo,
+  ConnectOptions,
+  Document,
+  ListDatabaseInfo,
+} from "./types.ts";
 import { parse } from "./utils/uri.ts";
-import { MongoError } from "./error.ts";
+import { MongoDriverError } from "./error.ts";
 import { Cluster } from "./cluster.ts";
 import { assert } from "../deps.ts";
 
-
 export class MongoClient {
   #cluster?: Cluster;
+  #defaultDbName = "admin";
+  #buildInfo?: BuildInfo;
+
+  get buildInfo() {
+    return this.#buildInfo;
+  }
 
   // cache db
   #dbCache = new Map();
@@ -17,23 +27,28 @@ export class MongoClient {
   public connectedCount = 0;
 
   async connectDB(
-    options: ConnectOptions,
+      options: ConnectOptions,
   ): Promise<Database> {
+    this.#defaultDbName = options.db;
     const cluster = new Cluster(options);
     await cluster.connect();
     await cluster.authenticate();
     await cluster.updateMaster();
+
     this.#cluster = cluster;
+    this.#buildInfo = await this.runCommand(this.#defaultDbName, {
+      buildInfo: 1,
+    });
     return this.database(options.db);
   }
 
   async connect(
-    options: ConnectOptions | string,
+      options: ConnectOptions | string,
   ): Promise<Database> {
     try {
       const parsedOptions = typeof options === "string"
-        ? await parse(options)
-        : options;
+          ? await parse(options)
+          : options;
       const cacheKey = JSON.stringify(parsedOptions.servers);
       if (this.#connectionCache.has(cacheKey)) {
         return this.#connectionCache.get(cacheKey);
@@ -43,19 +58,16 @@ export class MongoClient {
       this.#connectionCache.set(cacheKey, promise);
       return promise;
     } catch (e) {
-      throw new MongoError(`Connection failed: ${e.message || e}`);
+      throw new MongoDriverError(`Connection failed: ${e.message || e}`);
     }
   }
 
-  async listDatabases(options?: {
+  async listDatabases(options: {
     filter?: Document;
     nameOnly?: boolean;
     authorizedCollections?: boolean;
     comment?: Document;
-  }): Promise<ListDatabaseInfo[]> {
-    if (!options) {
-      options = {};
-    }
+  } = {}): Promise<ListDatabaseInfo[]> {
     assert(this.#cluster);
     const { databases } = await this.#cluster.protocol.commandSingle("admin", {
       listDatabases: 1,
@@ -70,7 +82,7 @@ export class MongoClient {
     return await this.#cluster.protocol.commandSingle(db, body);
   }
 
-  database(name: string): Database {
+  database(name = this.#defaultDbName): Database {
     assert(this.#cluster);
     if (this.#dbCache.has(name)) {
       return this.#dbCache.get(name);

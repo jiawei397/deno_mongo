@@ -31,50 +31,46 @@ export class Database {
   }
 
   collection<T>(
-    name: string,
-    schema?: SchemaCls,
+      name: string,
+      schema?: SchemaCls,
   ): Collection<T> {
     return new Collection(
-      this.#cluster.protocol,
-      this.name,
-      name,
-      schema,
+        this.#cluster.protocol,
+        this.name,
+        name,
+        schema,
     );
   }
 
-  listCollections(options?: {
+  listCollections(options: {
     filter?: Document;
     nameOnly?: boolean;
     authorizedCollections?: boolean;
     comment?: Document;
-  }): CommandCursor<ListCollectionsResult> {
-    if (!options) {
-      options = {};
-    }
+  } = {}): CommandCursor<ListCollectionsResult> {
     return new CommandCursor<ListCollectionsResult>(
-      this.#cluster.protocol,
-      async () => {
-        const { cursor } = await this.#cluster.protocol.commandSingle<
-          ListCollectionsReponse
-        >(this.name, {
-          listCollections: 1,
-          ...options,
-          batchSize: 1,
-        });
-        return {
-          id: cursor.id,
-          ns: cursor.ns,
-          firstBatch: cursor.firstBatch,
-        };
-      },
+        this.#cluster.protocol,
+        async () => {
+          const { cursor } = await this.#cluster.protocol.commandSingle<
+              ListCollectionsReponse
+              >(this.name, {
+            listCollections: 1,
+            ...options,
+          });
+          return {
+            id: cursor.id,
+            ns: cursor.ns,
+            firstBatch: cursor.firstBatch,
+          };
+        },
     );
   }
 
-  async listCollectionNames(options?: {
+  async listCollectionNames(options: {
     filter?: Document;
     authorizedCollections?: boolean;
     comment?: Document;
-  }): Promise<string[]> {
+  } = {}): Promise<string[]> {
     const cursor = this.listCollections({
       ...options,
       nameOnly: true,
@@ -82,15 +78,15 @@ export class Database {
     });
     const names: string[] = [];
     for await (const item of cursor) {
-      names.push(item!.name);
+      names.push(item.name);
     }
     return names;
   }
 
   async createUser(
-    username: string,
-    password: string,
-    options?: CreateUserOptions,
+      username: string,
+      password: string,
+      options?: CreateUserOptions,
   ) {
     await this.#cluster.protocol.commandSingle(this.name, {
       createUser: options?.username ?? username,
@@ -105,10 +101,10 @@ export class Database {
     });
   }
 
-  async dropUser(username: string, options?: {
+  async dropUser(username: string, options: {
     writeConcern?: Document;
     comment?: Document;
-  }) {
+  } = {}) {
     await this.#cluster.protocol.commandSingle(this.name, {
       dropUser: username,
       writeConcern: options?.writeConcern,

@@ -3,8 +3,8 @@ import { Schema } from "../../src/schema.ts";
 import { Document, MongoHookMethod, UpdateOptions } from "../../src/types.ts";
 import { getDB, getMetadata, getModel, Prop, TYPE_METADATA_KEY } from "../../src/utils/helper.ts";
 
-// const db = await getDB("mongodb://192.168.21.176:27018/test");
-const db = await getDB("mongodb://localhost:27018/test");
+const db = await getDB("mongodb://192.168.21.176:27018/test");
+// const db = await getDB("mongodb://localhost:27018/test");
 
 class User extends Schema {
   _id!: string;
