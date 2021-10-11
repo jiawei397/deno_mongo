@@ -50,12 +50,12 @@ export class Schema {
   @Prop({
     default: Date.now,
   })
-  createTime!: Date;
+  createTime?: Date;
 
   @Prop({
     default: Date.now,
   })
-  modifyTime!: Date;
+  modifyTime?: Date;
 }
 
 export type SchemaCls = typeof Schema;

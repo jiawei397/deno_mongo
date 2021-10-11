@@ -325,15 +325,15 @@ export class Collection<T> {
     options?: InsertOptions,
   ): Promise<
     {
-      insertedIds: (Bson.ObjectId | Required<InsertDocument<T>>["_id"])[];
+      insertedIds: string[];
       insertedCount: number;
     }
   > {
     const insertedIds = docs.map((doc) => {
       if (!doc._id) {
         doc._id = new Bson.ObjectId();
+        console.log(doc._id.toHexString());
       }
-
       return doc._id;
     });
 
@@ -354,7 +354,7 @@ export class Collection<T> {
     }
     await this.afterInsert(docs);
     return {
-      insertedIds,
+      insertedIds: insertedIds.map((id) => (id as Bson.ObjectId).toHexString()),
       insertedCount: res.n,
     };
   }
