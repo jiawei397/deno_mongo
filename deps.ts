@@ -1,4 +1,5 @@
 export * as Bson from "./bson/mod.ts";
+export { Binary, ObjectId } from "./bson/mod.ts";
 export type { Document } from "./bson/mod.ts";
 export {
   bgBlue,
