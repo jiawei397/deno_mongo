@@ -1,11 +1,20 @@
 // deno-lint-ignore-file no-explicit-any
 // deno run -A --unstable tests/cases/20_schema.ts
+import {
+  assert,
+  assertEquals,
+  assertExists,
+  assertNotEquals,
+} from "./../test.deps.ts";
 import { Schema } from "../../src/schema.ts";
 import { Document, MongoHookMethod, UpdateOptions } from "../../src/types.ts";
-import { getDB, getMetadata, getModel, Prop } from "../../src/utils/helper.ts";
-
-const db = await getDB("mongodb://192.168.21.176:27018/test");
-// const db = await getDB("mongodb://localhost:27018/test");
+import {
+  closeConnection,
+  getDB,
+  getMetadata,
+  getModel,
+  Prop,
+} from "../../src/utils/helper.ts";
 
 class User extends Schema {
   _id!: string;
@@ -16,103 +25,198 @@ class User extends Schema {
   name!: string;
 
   @Prop({
-    required: true,
+    required: false,
   })
   age!: number;
 }
 
-class Role extends Schema {
-  _id!: string;
-
-  @Prop({
-    required: true,
-  })
-  role!: string;
-
-  @Prop({
-    required: true,
-  })
-  token!: string;
-}
-
-console.log(User.getMeta());
-console.log(Role.getMeta());
-console.log(Schema.getMeta());
-
-console.log(getMetadata(User, "age"));
-
-User.pre(
-  MongoHookMethod.update,
-  function (filter: Document, doc: Document, options?: UpdateOptions) {
-    console.log("----pre----", filter, doc, options);
-    if (!doc.$set) {
-      doc.$set = {};
-    }
-    doc.$set.modifyTime = new Date();
-  },
-);
-
-User.post(MongoHookMethod.findOneAndUpdate, function (doc) {
-  console.log("----post--findOneAndUpdate--", doc);
-  doc.name = "haha";
-});
-
-User.post(MongoHookMethod.findMany, function (docs) {
-  console.log("----post--findMany--", docs);
-  docs.forEach((item: any) => {
-    item["inserted"] = "MongoHookMethod.find";
+export default function schemaTests() {
+  Deno.test({
+    name: "schema meta test",
+    fn() {
+      const shcemaMeta = Schema.getMeta();
+      assertExists(shcemaMeta.createTime);
+      assertExists(shcemaMeta.modifyTime);
+    },
   });
-});
 
-User.post(MongoHookMethod.findOne, function (doc) {
-  console.log("----post--findOne--", doc);
-  if (!doc) {
-    return;
-  }
-  doc["inserted"] = "MongoHookMethod.find";
-});
+  Deno.test({
+    name: "User meta test",
+    fn() {
+      const userMeta = User.getMeta();
+      assertEquals(userMeta.name, {
+        required: true,
+      });
+      assertEquals(userMeta.age, {
+        required: false,
+      });
+      assertExists(userMeta.createTime);
+      assertExists(userMeta.modifyTime);
+    },
+  });
 
-const model = await getModel<User>(db, User);
+  Deno.test({
+    name: "get User meta",
+    fn() {
+      const ageMeta = getMetadata(User, "age");
+      assertEquals(ageMeta, {
+        required: false,
+      });
 
-// const res = await model.insertOne({
-//   "name": 'aff',
-//   "age": 18,
-//   "enName": "few",
-//   "email": "22",
-//   "external": false,
-//   "state": "active",
-//   // "createTime": "2021-01-12T07:09:10.094Z",
-//   // "modifyTime": "2021-01-12T07:37:45.527Z",
-// });
-// console.log(res.toString());
+      const nameMeta = getMetadata(User, "name");
+      assertEquals(nameMeta, {
+        required: true,
+      });
+    },
+  });
 
-const res = await model.findByIdAndUpdate("613f1b073764056ec091fac2", {
-  $set: {
-    "groups": [
-      "aaa",
-      "bbb",
-    ],
-    "username": "式",
-    "age": 222,
-  },
-}, {
-  new: true,
-});
-console.log(res);
+  Deno.test({
+    name: "insert and find",
+    async fn() {
+      const db = await getDB("mongodb://192.168.21.176:27018/test");
+      const model = await getModel<User>(db, User, "mongo_test_user");
 
-const doc = await model.findById("613f09dd6c2086525c6d6bba");
-console.log(doc);
+      const id = await model.insertOne({
+        "name": "zhangsan",
+        "age": 18,
+      });
+      assertEquals(typeof id, "string");
 
-const arr = await model.findMany({
-  // _id: {
-  //   $in: ["60e6e614285ceda2e3c5c878", "60e6e6005fd742d2f03bda02"],
-  // },
-}, {
-  remainOriginId: true,
-  skip: 0, // 从0开始
-  limit: 2,
-  sort: {
-    age: 1,
-  },
-});
-console.log(arr);
+      {
+        const inserted = "MongoHookMethod.find";
+        User.post(MongoHookMethod.findOne, function (doc) {
+          assertNotEquals(doc, null, "hook findOne, doc must not be null");
+          doc["inserted"] = inserted;
+        });
+
+        const doc: any = await model.findById(id);
+        assertNotEquals(doc, null, "doc must not be null");
+        assertEquals(doc["inserted"], inserted);
+      }
+
+      {
+        const update = {
+          $set: {
+            "name": "bb",
+            "age": 222,
+            "sex": "man", // ex insert key
+          },
+        };
+        const options = {
+          new: true,
+        };
+        User.pre(
+          MongoHookMethod.update,
+          function (
+            filter: Document,
+            doc: Document,
+            _options?: UpdateOptions,
+          ) {
+            assertExists(filter._id, "只测试findByIdAndUpdate，这时条件里肯定有_id");
+            assertEquals(doc, update);
+            assertEquals(_options!.new, true);
+          },
+        );
+
+        User.post(MongoHookMethod.findOneAndUpdate, function (doc) {
+          assertNotEquals(
+            doc,
+            null,
+            "hook findOneAndUpdate, doc must not be null",
+          );
+          doc.addr = "haha";
+        });
+
+        const res: any = await model.findByIdAndUpdate(id, update, options);
+        assertEquals(res.name, update.$set.name);
+        assertEquals(res.age, update.$set.age);
+        assertEquals(res.sex, undefined);
+        assertEquals(
+          res.addr,
+          "haha",
+          "hook findOneAndUpdate will inster name",
+        );
+      }
+
+      {
+        const id2 = await model.insertOne({
+          "name": "lisi",
+          "age": 3,
+        });
+        assertEquals(typeof id2, "string");
+
+        const manyInserted = "MongoHookMethod.find";
+        User.post(MongoHookMethod.findMany, function (docs) {
+          assert(Array.isArray(docs));
+          docs.forEach((item: any) => {
+            item["inserted"] = manyInserted;
+          });
+        });
+
+        const arr = await model.findMany({
+          _id: {
+            $in: [id, id2],
+          },
+        });
+        arr.forEach((doc: any) => {
+          assertEquals(doc._id, undefined);
+          assert([id, id2].find((_id) => _id === doc.id));
+          assertEquals(doc.inserted, manyInserted);
+        });
+
+        {
+          const arr = await model.findMany({
+            _id: {
+              $in: [id, id2],
+            },
+          }, {
+            remainOriginId: true,
+          });
+          arr.forEach((doc: any) => {
+            assertExists(doc._id);
+          });
+        }
+
+        {
+          const arr = await model.findMany({
+            _id: {
+              $in: [id, id2],
+            },
+          }, {
+            skip: 0, // 从0开始
+            limit: 1,
+            // sort: {
+            //   age: 1,
+            // },
+          });
+
+          assertEquals(arr.length, 1);
+          assertEquals((arr[0] as any).id, id);
+        }
+
+        {
+          const arr = await model.findMany({
+            _id: {
+              $in: [id, id2],
+            },
+          }, {
+            sort: {
+              age: 1,
+            },
+          });
+
+          assertEquals(arr.length, 2);
+          assertEquals((arr[0] as any).id, id2);
+        }
+
+        const deleteResult: any = await model.findByIdAndDelete(id2);
+        assertEquals(deleteResult, 1);
+      }
+
+      const deleteResult: any = await model.findByIdAndDelete(id);
+      assertEquals(deleteResult, 1);
+
+      closeConnection();
+    },
+  });
+}

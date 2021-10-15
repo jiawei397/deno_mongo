@@ -566,6 +566,8 @@ export class Collection<T> {
     return this.deleteOne(filter);
   }
 
+  findByIdAndDelete = this.deleteById;
+
   async drop(options?: DropOptions): Promise<void> {
     await this.#protocol.commandSingle(this.#dbName, {
       drop: this.name,

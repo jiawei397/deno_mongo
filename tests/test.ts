@@ -5,15 +5,18 @@ import curdTests from "./cases/03_curd.ts";
 import indexesTests from "./cases/04_indexes.ts";
 import srvTests from "./cases/05_srv.ts";
 import gridfsTests from "./cases/06_gridfs.ts";
+import schemaTests from "./cases/20_schema.ts";
 
 import cleanup from "./cases/99_cleanup.ts";
 
-uriTests();
-authTests();
-connectTests();
-curdTests();
-gridfsTests();
-indexesTests();
-srvTests();
+// uriTests();
+// authTests();
+// connectTests();
+// curdTests();
+// gridfsTests();
+// indexesTests();
+// srvTests();
+
+schemaTests();
 
 cleanup();

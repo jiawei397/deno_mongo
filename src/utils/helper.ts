@@ -23,6 +23,10 @@ let connectedPromise: Promise<any>;
 const client = new MongoClient();
 let modelCaches: Map<SchemaCls, any> | undefined;
 
+export function closeConnection() {
+  return client.close();
+}
+
 export function getDB(db: string): Promise<Database> {
   if (!connectedPromise) {
     const arr = db.split("/");
