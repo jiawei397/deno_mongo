@@ -74,7 +74,7 @@ export default function schemaTests() {
     name: "insert and find",
     async fn() {
       const db = await getDB("mongodb://192.168.21.176:27018/test");
-      const model = await getModel<User>(db, User, "mongo_test_user");
+      const model = await getModel<User>(db, User, "mongo_test_schemas");
 
       const id = await model.insertOne({
         "name": "zhangsan",
@@ -213,8 +213,8 @@ export default function schemaTests() {
         assertEquals(deleteResult, 1);
       }
 
-      const deleteResult: any = await model.findByIdAndDelete(id);
-      assertEquals(deleteResult, 1);
+      // const deleteResult: any = await model.findByIdAndDelete(id);
+      // assertEquals(deleteResult, 1);
 
       closeConnection();
     },
