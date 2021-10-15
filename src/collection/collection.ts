@@ -332,7 +332,6 @@ export class Collection<T> {
     const insertedIds = docs.map((doc) => {
       if (!doc._id) {
         doc._id = new Bson.ObjectId();
-        console.log(doc._id.toHexString());
       }
       return doc._id;
     });
