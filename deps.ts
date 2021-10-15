@@ -1,6 +1,6 @@
-export * as Bson from "./bson/mod.ts";
-export { Binary, ObjectId } from "./bson/mod.ts";
-export type { Document } from "./bson/mod.ts";
+export * as Bson from "https://deno.land/x/deno_bson@v0.0.1/mod.ts";
+export { Binary, ObjectId } from "https://deno.land/x/deno_bson@v0.0.1/mod.ts";
+export type { Document } from "https://deno.land/x/deno_bson@v0.0.1/mod.ts";
 export {
   bgBlue,
   bgRgb24,

@@ -1,11 +1,11 @@
 import { Credential, Document } from "../types.ts";
-import { Binary } from "../../bson/mod.ts";
 import { saslprep } from "../utils/saslprep/mod.ts";
 import { AuthContext, AuthPlugin } from "./base.ts";
 import { HandshakeDocument } from "../protocol/handshake.ts";
 import { MongoDriverError } from "../error.ts";
 import {
   b64,
+  Binary,
   createHash,
   HmacSha1,
   HmacSha256,
