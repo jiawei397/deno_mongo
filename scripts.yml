@@ -1,4 +1,4 @@
-version: 0.24.16
+version: 0.24.17
 name: jw_mongo
 scripts:
   cache: 
