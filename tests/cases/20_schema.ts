@@ -6,9 +6,9 @@ import {
   assertExists,
   assertNotEquals,
 } from "./../test.deps.ts";
-import { getMetadata, getModel, Prop, Schema } from "../../src/schema.ts";
 import { Document, MongoHookMethod, UpdateOptions } from "../../src/types.ts";
 import { closeConnection, getDB } from "../../src/utils/helper.ts";
+import { getMetadata, getModel, Prop, Schema } from "../../src/schema.ts";
 
 class User extends Schema {
   _id!: string;
@@ -71,7 +71,11 @@ export default function schemaTests() {
     name: "insert and find",
     async fn() {
       const db = await getDB("mongodb://192.168.21.176:27018/test");
-      const model = await getModel<User>(db, User, "mongo_test_schemas");
+      const model = await getModel<User>(
+        db,
+        User,
+        "mongo_test_schemas",
+      );
 
       const id = await model.insertOne({
         "name": "zhangsan",

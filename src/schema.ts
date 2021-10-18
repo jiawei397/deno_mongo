@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { green } from "../deps.ts";
-import { Collection } from "./collection/collection.ts";
+import { Collection } from "../mod.ts";
 import { Database } from "./database.ts";
 import {
   Constructor,
@@ -11,6 +11,13 @@ import {
   Target,
   TargetInstance,
 } from "./types.ts";
+
+export const metadataCache = new Map();
+let modelCaches: Map<SchemaCls, any> | undefined;
+export const TYPE_METADATA_KEY = Symbol("design:type");
+
+export const instanceCache = new Map();
+
 export class Schema {
   static preHooks: Hooks = new Map();
   static postHooks: Hooks = new Map();
@@ -70,12 +77,6 @@ export class Schema {
 
 export type SchemaCls = typeof Schema;
 
-let modelCaches: Map<SchemaCls, any> | undefined;
-export const metadataCache = new Map();
-export const TYPE_METADATA_KEY = Symbol("design:type");
-
-export const instanceCache = new Map();
-
 export function getInstance(cls: Target) {
   if (instanceCache.has(cls)) {
     return instanceCache.get(cls);
@@ -85,7 +86,7 @@ export function getInstance(cls: Target) {
   return instance;
 }
 
-function addMetadata(
+export function addMetadata(
   target: Target,
   propertyKey: string,
   props: any = {},
@@ -117,7 +118,7 @@ export function Prop(props?: SchemaType) {
   };
 }
 
-function getModelByName(cls: Constructor, name?: string) {
+export function getModelByName(cls: Constructor, name?: string) {
   let modelName = name || cls.name;
   if (!modelName.endsWith("s")) {
     modelName += "s";
@@ -141,7 +142,7 @@ export async function getModel<T extends Schema>(
   const model = db.collection(modelName, cls);
   modelCaches.set(cls, model);
   await initModel(model, cls);
-  console.log(green(`model [${modelName}] init ok`));
+  console.log(green(`Schema [${modelName}] init ok`));
   return model as Collection<T>;
 }
 
