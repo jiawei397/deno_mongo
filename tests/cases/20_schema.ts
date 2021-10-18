@@ -21,6 +21,7 @@ class User extends Schema {
 
   @Prop({
     required: true,
+    index: true,
   })
   name!: string;
 
@@ -46,6 +47,7 @@ export default function schemaTests() {
       const userMeta = User.getMeta();
       assertEquals(userMeta.name, {
         required: true,
+        index: true,
       });
       assertEquals(userMeta.age, {
         required: false,
@@ -66,6 +68,7 @@ export default function schemaTests() {
       const nameMeta = getMetadata(User, "name");
       assertEquals(nameMeta, {
         required: true,
+        index: true,
       });
     },
   });
@@ -215,6 +218,35 @@ export default function schemaTests() {
 
       // const deleteResult: any = await model.findByIdAndDelete(id);
       // assertEquals(deleteResult, 1);
+
+      {
+        await model.createIndexes({
+          indexes: [{
+            name: "_name2",
+            key: { name: -1 },
+          }],
+        });
+        let indexes = await model.listIndexes().toArray();
+        assertEquals(
+          indexes,
+          [
+            { v: 2, key: { _id: 1 }, name: "_id_" },
+            { v: 2, key: { name: 1 }, name: "name_1" },
+            { v: 2, key: { name: -1 }, name: "_name2" },
+          ],
+        );
+
+        await model.syncIndexes();
+
+        indexes = await model.listIndexes().toArray();
+        assertEquals(
+          indexes,
+          [
+            { v: 2, key: { _id: 1 }, name: "_id_" },
+            { v: 2, key: { name: 1 }, name: "name_1" },
+          ],
+        );
+      }
 
       closeConnection();
     },

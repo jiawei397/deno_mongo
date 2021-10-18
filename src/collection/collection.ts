@@ -2,7 +2,7 @@
 import { blue, Bson, yellow } from "../../deps.ts";
 import { MongoDriverError } from "../error.ts";
 import { WireProtocol } from "../protocol/mod.ts";
-import { SchemaCls } from "../schema.ts";
+import { Schema, SchemaCls } from "../schema.ts";
 import {
   AggregateOptions,
   AggregatePipeline,
@@ -23,6 +23,7 @@ import {
   UpdateFilter,
   UpdateOptions,
 } from "../types.ts";
+import { initModel } from "../utils/helper.ts";
 import { AggregateCursor } from "./commands/aggregate.ts";
 import { FindCursor } from "./commands/find.ts";
 import { ListIndexesCursor } from "./commands/listIndexes.ts";
@@ -624,6 +625,17 @@ export class Collection<T> {
     );
 
     return res;
+  }
+
+  async syncIndexes() {
+    if (!this.#schema) {
+      return false;
+    }
+    await this.dropIndexes({
+      index: "*",
+    });
+    await initModel(this, this.#schema);
+    return true;
   }
 
   listIndexes() {
