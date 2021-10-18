@@ -6,15 +6,9 @@ import {
   assertExists,
   assertNotEquals,
 } from "./../test.deps.ts";
-import { Schema } from "../../src/schema.ts";
+import { getMetadata, getModel, Prop, Schema } from "../../src/schema.ts";
 import { Document, MongoHookMethod, UpdateOptions } from "../../src/types.ts";
-import {
-  closeConnection,
-  getDB,
-  getMetadata,
-  getModel,
-  Prop,
-} from "../../src/utils/helper.ts";
+import { closeConnection, getDB } from "../../src/utils/helper.ts";
 
 class User extends Schema {
   _id!: string;
