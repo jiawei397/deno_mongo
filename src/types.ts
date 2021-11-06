@@ -1,4 +1,4 @@
-// deno-lint-ignore-file no-explicit-any camelcase
+// deno-lint-ignore-file no-explicit-any camelcase ban-types
 import { Bson } from "../deps.ts";
 import { WriteConcern } from "./types/readWriteConcern.ts";
 
@@ -40,6 +40,7 @@ export interface FindOptions {
   projection?: Document;
   sort?: Document;
   noCursorTimeout?: boolean;
+  popluates: {};
 
   remainOriginId?: boolean; // is keep _id
 }
@@ -894,4 +895,405 @@ export const enum ReadPreference {
   Secondary = "secondary",
   SecondaryPreferred = "secondaryPreferred",
   Nearest = "nearest",
+}
+
+type actualPrimitives =
+  | string
+  | boolean
+  | number
+  | bigint
+  | symbol
+  | null
+  | undefined;
+
+type TreatAsPrimitives =
+  | actualPrimitives
+  | Date
+  | RegExp
+  | symbol
+  | Error
+  | BigInt
+  | Bson.ObjectId;
+type LeanType<T> = 0 extends (1 & T) ? T
+  : // any
+  T extends TreatAsPrimitives ? T
+  : // primitives
+  LeanDocument<T>; // Documents and everything else
+
+type LeanArray<T extends unknown[]> = T extends unknown[][]
+  ? LeanArray<T[number]>[]
+  : LeanType<T[number]>[];
+
+// Keep this a separate type, to ensure that T is a naked type.
+// This way, the conditional type is distributive over union types.
+// This is required for PopulatedDoc.
+type LeanDocumentElement<T> = 0 extends (1 & T) ? T
+  : // any
+  T extends unknown[] ? LeanArray<T>
+  : // Array
+  T extends Document ? LeanDocument<T>
+  : // Subdocument
+  T;
+
+export type _LeanDocument<T> = {
+  [K in keyof T]: LeanDocumentElement<T[K]>;
+};
+
+export type LeanDocument<T> = Omit<
+  _LeanDocument<T>,
+  Exclude<keyof Document, "_id" | "id" | "__v"> | "$isSingleNested"
+>;
+
+type _AllowStringsForIds<T> = {
+  [K in keyof T]: [Extract<T[K], Bson.ObjectId>] extends [never] ? T[K]
+    : T[K] | string;
+};
+export type DocumentDefinition<T> = _AllowStringsForIds<LeanDocument<T>>;
+
+/** @see https://docs.mongodb.com/v3.6/reference/operator/query-bitwise */
+type BitwiseQuery =
+  | number /** <numeric bitmask> */
+  | Bson.Binary /** <BinData bitmask> */
+  | number[]; /** [ <position1>, <position2>, ... ] */
+
+/**
+ * Available BSON types
+ *
+ * @see https://docs.mongodb.com/v3.6/reference/operator/query/type/#available-types
+ */
+export enum BSONType {
+  Double = 1,
+  String,
+  Object,
+  Array,
+  BinData,
+  /** @deprecated */
+  Undefined,
+  ObjectId,
+  Boolean,
+  Date,
+  Null,
+  Regex,
+  /** @deprecated */
+  DBPointer,
+  JavaScript,
+  /** @deprecated */
+  Symbol,
+  JavaScriptWithScope,
+  Int,
+  Timestamp,
+  Long,
+  Decimal,
+  MinKey = -1,
+  MaxKey = 127,
+}
+
+type BSONTypeAlias =
+  | "number"
+  | "double"
+  | "string"
+  | "object"
+  | "array"
+  | "binData"
+  | "undefined"
+  | "objectId"
+  | "bool"
+  | "date"
+  | "null"
+  | "regex"
+  | "dbPointer"
+  | "javascript"
+  | "symbol"
+  | "javascriptWithScope"
+  | "int"
+  | "timestamp"
+  | "long"
+  | "decimal"
+  | "minKey"
+  | "maxKey";
+
+/**
+ * Available query selector types
+ *
+ * @param $eq Matches values that are equal to a specified value.
+ * @param $gt Matches values that are greater than a specified value.
+ * @param $gte Matches values that are greater than or equal to a specified value.
+ * @param $in Matches values that are greater than or equal to a specified value.
+ * @param $lt Matches values that are less than a specified value.
+ * @param $lte Matches values that are less than or equal to a specified value.
+ * @param $ne Matches all values that are not equal to a specified value.
+ * @param $nin Matches none of the values specified in an array.
+ *
+ * @param $and Joins query clauses with a logical `AND` returns all documents that match the conditions of both clauses.
+ * @param $not Inverts the effect of a query expression and returns documents that do not match the query expression.
+ * @param $nor Joins query clauses with a logical `NOR` returns all documents that fail to match both clauses.
+ * @param $or Joins query clauses with a logical `OR` returns all documents that match the conditions of either clause.
+ *
+ * @param $exists Matches documents that have the specified field.
+ * @param $type Selects documents if a field is of the specified type.
+ *
+ * @param $expr Allows use of aggregation expressions within the query language.
+ * @param $jsonSchema Validate documents against the given JSON Schema.
+ * @param $mod Performs a modulo operation on the value of a field and selects documents with a specified result.
+ * @param $regex Selects documents where values match a specified regular expression.
+ * @param $text Performs text search.
+ * @param $where Matches documents that satisfy a JavaScript expression.
+ *
+ * @param $geoIntersects Selects geometries that intersect with a {@link https://docs.mongodb.com/v3.6/reference/glossary/#term-geojson GeoJSON} geometry.
+ * The {@link https://docs.mongodb.com/v3.6/core/2dsphere/ 2dsphere} index supports {@link https://docs.mongodb.com/v3.6/reference/operator/query/geoIntersects/#op._S_geoIntersects $geoIntersects}.
+ * @param $geoWithin Selects geometries within a bounding {@link https://docs.mongodb.com/v3.6/reference/geojson/#geospatial-indexes-store-geojson GeoJSON geometry}.
+ * The {@link https://docs.mongodb.com/v3.6/core/2dsphere/ 2dsphere} and {@link https://docs.mongodb.com/v3.6/core/2d/ 2d} indexes
+ * support {@link https://docs.mongodb.com/v3.6/reference/operator/query/geoWithin/#op._S_geoWithin $geoWithin}.
+ * @param $near Returns geospatial objects in proximity to a point. Requires a geospatial index. The {@link https://docs.mongodb.com/v3.6/core/2dsphere/ 2dsphere}
+ * and {@link https://docs.mongodb.com/v3.6/core/2d/ 2d} indexes support {@link https://docs.mongodb.com/v3.6/reference/operator/query/near/#op._S_near $near}.
+ * @param $nearSphere Returns geospatial objects in proximity to a point on a sphere. Requires a geospatial index. The {@link https://docs.mongodb.com/v3.6/core/2dsphere/ 2dsphere} and
+ * {@link https://docs.mongodb.com/v3.6/reference/operator/query/nearSphere/#op._S_nearSphere 2d} indexes support
+ * {@link https://docs.mongodb.com/v3.6/reference/operator/query/nearSphere/#op._S_nearSphere $nearSphere}.
+ *
+ * @param $all Matches arrays that contain all elements specified in the query.
+ * @param $elemMatch Selects documents if element in the array field matches all the specified
+ * {@link https://docs.mongodb.com/v3.6/reference/operator/query/elemMatch/#op._S_elemMatch $elemMatch} conditions.
+ * @param $size Selects documents if the array field is a specified size.
+ *
+ * @param $bitsAllClear Matches numeric or binary values in which a set of bit positions all have a value of `0`.
+ * @param $bitsAllSet Matches numeric or binary values in which a set of bit positions all have a value of `1`.
+ * @param $bitsAnyClear Matches numeric or binary values in which any bit from a set of bit positions has a value of `0`.
+ * @param $bitsAnySet Matches numeric or binary values in which any bit from a set of bit positions has a value of `1`.
+ *
+ * @see https://docs.mongodb.com/v3.6/reference/operator/query/#query-selectors
+ */
+export type QuerySelector<T> = {
+  // Comparison
+  $eq?: T | undefined;
+  $gt?: T | undefined;
+  $gte?: T | undefined;
+  $in?: T[] | undefined;
+  $lt?: T | undefined;
+  $lte?: T | undefined;
+  $ne?: T | undefined;
+  $nin?: T[] | undefined;
+  // Logical
+  $not?: T extends string ? QuerySelector<T> | RegExp
+    : QuerySelector<T> | undefined;
+  // Element
+  /**
+   * When `true`, `$exists` matches the documents that contain the field,
+   * including documents where the field value is null.
+   */
+  $exists?: boolean | undefined;
+  $type?: BSONType | BSONTypeAlias | undefined;
+  // Evaluation
+  $expr?: any;
+  $jsonSchema?: any;
+  $mod?: T extends number ? [number, number] : never | undefined;
+  $regex?: T extends string ? RegExp | string : never | undefined;
+  $options?: T extends string ? string : never | undefined;
+  // Geospatial
+  // TODO: define better types for geo queries
+  $geoIntersects?: { $geometry: object } | undefined;
+  $geoWithin?: object | undefined;
+  $near?: object | undefined;
+  $nearSphere?: object | undefined;
+  $maxDistance?: number | undefined;
+  // Array
+  // TODO: define better types for $all and $elemMatch
+  $all?: T extends ReadonlyArray<infer U> ? any[] : never | undefined;
+  $elemMatch?: T extends ReadonlyArray<infer U> ? object : never | undefined;
+  $size?: T extends ReadonlyArray<infer U> ? number : never | undefined;
+  // Bitwise
+  $bitsAllClear?: BitwiseQuery | undefined;
+  $bitsAllSet?: BitwiseQuery | undefined;
+  $bitsAnyClear?: BitwiseQuery | undefined;
+  $bitsAnySet?: BitwiseQuery | undefined;
+};
+
+// we can search using alternative types in mongodb e.g.
+// string types can be searched using a regex in mongo
+// array types can be searched using their element type
+type RegExpForString<T> = T extends string ? RegExp | T : T;
+type MongoAltQuery<T> = T extends ReadonlyArray<infer U>
+  ? T | RegExpForString<U>
+  : RegExpForString<T>;
+
+export type Condition<T> = MongoAltQuery<T> | QuerySelector<MongoAltQuery<T>>;
+
+export type RootQuerySelector<T> = {
+  /** @see https://docs.mongodb.com/v3.6/reference/operator/query/and/#op._S_and */
+  $and?: Array<FilterQuery<T>> | undefined;
+  /** @see https://docs.mongodb.com/v3.6/reference/operator/query/nor/#op._S_nor */
+  $nor?: Array<FilterQuery<T>> | undefined;
+  /** @see https://docs.mongodb.com/v3.6/reference/operator/query/or/#op._S_or */
+  $or?: Array<FilterQuery<T>> | undefined;
+  /** @see https://docs.mongodb.com/v3.6/reference/operator/query/text */
+  $text?: {
+    $search: string;
+    $language?: string | undefined;
+    $caseSensitive?: boolean | undefined;
+    $diacriticSensitive?: boolean | undefined;
+  } | undefined;
+  /** @see https://docs.mongodb.com/v3.6/reference/operator/query/where/#op._S_where */
+  $where?: string | Function | undefined;
+  /** @see https://docs.mongodb.com/v3.6/reference/operator/query/comment/#op._S_comment */
+  $comment?: string | undefined;
+  // we could not find a proper TypeScript generic to support nested queries e.g. 'user.friends.name'
+  // this will mark all unrecognized properties as any (including nested queries)
+  [key: string]: any;
+};
+
+type _FilterQuery<T> =
+  & {
+    [P in keyof T]?: P extends "_id"
+      ? [Extract<T[P], Bson.ObjectId>] extends [never] ? Condition<T[P]>
+      : Condition<T[P] | string | { _id: Bson.ObjectId }>
+      : [Extract<T[P], Bson.ObjectId>] extends [never] ? Condition<T[P]>
+      : Condition<T[P] | string>;
+  }
+  & RootQuerySelector<DocumentDefinition<T>>;
+
+export type FilterQuery<T> = _FilterQuery<T>;
+
+/**
+ * Possible fields for a collation document
+ *
+ * @see https://docs.mongodb.com/v3.6/reference/collation/#collation-document-fields
+ */
+export interface CollationDocument {
+  locale: string;
+  strength?: number | undefined;
+  caseLevel?: boolean | undefined;
+  caseFirst?: string | undefined;
+  numericOrdering?: boolean | undefined;
+  alternate?: string | undefined;
+  maxVariable?: string | undefined;
+  backwards?: boolean | undefined;
+  normalization?: boolean | undefined;
+}
+
+interface QueryOptions {
+  arrayFilters?: { [key: string]: any }[];
+  batchSize?: number;
+  collation?: CollationDocument;
+  comment?: any;
+  context?: string;
+  explain?: any;
+  fields?: any | string;
+  hint?: any;
+  /**
+   * If truthy, mongoose will return the document as a plain JavaScript object rather than a mongoose document.
+   */
+  lean?: boolean | any;
+  limit?: number;
+  maxTimeMS?: number;
+  maxscan?: number;
+  multi?: boolean;
+  multipleCastError?: boolean;
+  /**
+   * By default, `findOneAndUpdate()` returns the document as it was **before**
+   * `update` was applied. If you set `new: true`, `findOneAndUpdate()` will
+   * instead give you the object after `update` was applied.
+   */
+  new?: boolean;
+  omitUndefined?: boolean;
+  overwrite?: boolean;
+  overwriteDiscriminatorKey?: boolean;
+  populate?: string;
+  projection?: any;
+  /**
+   * if true, returns the raw result from the MongoDB driver
+   */
+  rawResult?: boolean;
+  // TODO ReadPreferenceMode
+  // readPreference?: mongodb.ReadPreferenceMode;
+  /**
+   * An alias for the `new` option. `returnOriginal: false` is equivalent to `new: true`.
+   */
+  returnOriginal?: boolean;
+  /**
+   * Another alias for the `new` option. `returnOriginal` is deprecated so this should be used.
+   */
+  returnDocument?: string;
+  runValidators?: boolean;
+  sanitizeProjection?: boolean;
+  /** The session associated with this query. */
+  // session?: ClientSession;
+  setDefaultsOnInsert?: boolean;
+  skip?: number;
+  snapshot?: any;
+  sort?: any;
+  /** overwrites the schema's strict mode option */
+  strict?: boolean | string;
+  tailable?: number;
+  /**
+   * If set to `false` and schema-level timestamps are enabled,
+   * skip timestamps for this update. Note that this allows you to overwrite
+   * timestamps. Does nothing if schema-level timestamps are not set.
+   */
+  timestamps?: boolean;
+  upsert?: boolean;
+  useFindAndModify?: boolean;
+  writeConcern?: any;
+}
+
+export interface VirtualTypeOptions {
+  /** If `ref` is not nullish, this becomes a populated virtual. */
+  ref?: string | Function;
+
+  /**  The local field to populate on if this is a populated virtual. */
+  localField?: string | Function;
+
+  /** The foreign field to populate on if this is a populated virtual. */
+  foreignField?: string | Function;
+
+  /**
+   * By default, a populated virtual is an array. If you set `justOne`,
+   * the populated virtual will be a single doc or `null`.
+   */
+  justOne?: boolean;
+
+  /** If you set this to `true`, Mongoose will call any custom getters you defined on this virtual. */
+  getters?: boolean;
+
+  /**
+   * If you set this to `true`, `populate()` will set this virtual to the number of populated
+   * documents, as opposed to the documents themselves, using `Query#countDocuments()`.
+   */
+  count?: boolean;
+
+  /** Add an extra match condition to `populate()`. */
+  match?: FilterQuery<any> | Function;
+
+  /** Add a default `limit` to the `populate()` query. */
+  limit?: number;
+
+  /** Add a default `skip` to the `populate()` query. */
+  skip?: number;
+
+  /**
+   * For legacy reasons, `limit` with `populate()` may give incorrect results because it only
+   * executes a single query for every document being populated. If you set `perDocumentLimit`,
+   * Mongoose will ensure correct `limit` per document by executing a separate query for each
+   * document to `populate()`. For example, `.find().populate({ path: 'test', perDocumentLimit: 2 })`
+   * will execute 2 additional queries if `.find()` returns 2 documents.
+   */
+  perDocumentLimit?: number;
+
+  /** Additional options like `limit` and `lean`. */
+  options?: QueryOptions;
+
+  /** Additional options for plugins */
+  [extra: string]: any;
+}
+
+export interface VirtualType {
+  /** Applies getters to `value`. */
+  applyGetters(value: any, doc: Document): any;
+
+  /** Applies setters to `value`. */
+  applySetters(value: any, doc: Document): any;
+
+  /** Adds a custom getter to this virtual. */
+  get(fn: Function): this;
+
+  /** Adds a custom setter to this virtual. */
+  set(fn: Function): this;
 }

@@ -8,7 +8,14 @@ import {
 } from "./../test.deps.ts";
 import { Document, MongoHookMethod, UpdateOptions } from "../../src/types.ts";
 import { closeConnection, getDB } from "../../src/utils/helper.ts";
-import { getMetadata, getModel, Prop, Schema } from "../../src/schema.ts";
+import {
+  getInstance,
+  getMetadata,
+  getModel,
+  instanceCache,
+  Prop,
+  Schema,
+} from "../../src/schema.ts";
 
 class User extends Schema {
   _id!: string;
@@ -26,6 +33,16 @@ class User extends Schema {
 }
 
 export default function schemaTests() {
+  Deno.test({
+    name: "schema instance test",
+    fn() {
+      const instance1 = getInstance(User);
+      const instance2 = getInstance(User);
+      assertEquals(instance1, instance2);
+      console.log(instanceCache);
+    },
+  });
+
   Deno.test({
     name: "schema meta test",
     fn() {

@@ -46,4 +46,12 @@ export class FindCursor<T> extends CommandCursor<T> {
     this.#context.options.sort = sort;
     return this;
   }
+
+  /** Specifies paths which should be populated with other documents. */
+  populate(
+    path: string,
+    select?: string | Record<string, 0 | 1>,
+  ): this {
+    return this;
+  }
 }

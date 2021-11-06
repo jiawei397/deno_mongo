@@ -10,6 +10,8 @@ import {
   SchemaType,
   Target,
   TargetInstance,
+  VirtualType,
+  VirtualTypeOptions,
 } from "./types.ts";
 
 export const metadataCache = new Map();
@@ -17,6 +19,8 @@ let modelCaches: Map<SchemaCls, any> | undefined;
 export const TYPE_METADATA_KEY = Symbol("design:type");
 
 export const instanceCache = new Map();
+
+export const virtualCache = new Map();
 
 export class Schema {
   static preHooks: Hooks = new Map();
@@ -62,6 +66,11 @@ export class Schema {
     method: MongoHookMethod,
   ): MongoHookCallback[] | undefined {
     return this.postHooks.get(method);
+  }
+
+  static virtual(name: string, options: VirtualTypeOptions) {
+    virtualCache.set(name, options);
+    return this;
   }
 
   @Prop({
