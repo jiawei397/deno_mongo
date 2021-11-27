@@ -26,11 +26,14 @@ Role.virtual("user", {
   isTransformLocalFieldToObjectID: true,
 });
 
-Role.populate("user", {
-  _id: 0,
-  // group: 1,
-  // title: 1,
-});
+// Role.populate("user", {
+//   // _id: 0,
+//   group: 1,
+//   // title: 1,
+// });
+// Role.populate("user", "group");
+// Role.populate("user", "-group -createTime");
+Role.populate("user", "title group");
 
 const userModel = await getModel<User>(db, User);
 
@@ -52,7 +55,7 @@ const roleModel = await getModel<Role>(db, Role);
 
 console.log(
   await roleModel.find({}, {
-    skip: 1,
-    limit: 1,
+    // skip: 1,
+    // limit: 1,
   }),
 );

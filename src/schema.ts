@@ -55,7 +55,18 @@ export class Schema {
     path: string,
     select?: PopulateSelect,
   ) {
-    this.populateMap.set(path, select || true);
+    let _select: any = select || true;
+    if (typeof select === "string") {
+      _select = {};
+      select.split(" ").forEach((item) => {
+        if (item.startsWith("-")) {
+          _select[item.substr(1)] = 0;
+        } else {
+          _select[item] = 1;
+        }
+      });
+    }
+    this.populateMap.set(path, _select);
     return this;
   }
 
