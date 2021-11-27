@@ -50,21 +50,7 @@ export class Collection<T> {
       return;
     }
     const populates = this.#schema.getPopulates();
-    if (!populates) {
-      return;
-    }
-    const { map, params } = populates; // 通过map来过滤populates
-    const result = new Map<string, VirtualTypeOptions>();
-    for (const [key, value] of params) {
-      if (!map.has(key)) {
-        continue;
-      }
-      result.set(key, value);
-    }
-    if (result.size === 0) {
-      return;
-    }
-    return result;
+    return populates;
   }
 
   private async _find(
@@ -79,36 +65,36 @@ export class Collection<T> {
 
     const populates = this.getPopulates();
     if (populates) {
-      const params = [];
+      const { map, params } = populates;
+      const paramsArray = [];
       if (filter) {
-        params.push({
+        paramsArray.push({
           $match: filter,
         });
       }
       if (options?.sort) {
-        params.push({
+        paramsArray.push({
           $sort: options.sort,
         });
       }
       if (options?.skip !== undefined) {
-        params.push({
+        paramsArray.push({
           $skip: options.skip,
         });
       }
       if (options?.limit) {
-        params.push({
+        paramsArray.push({
           $limit: options.limit,
         });
       }
       const addFields: any = {};
-      let hasOne = false; // check if has justOne
-      for (const [key, value] of populates) {
+      for (const [key, value] of params) {
+        if (!map.has(key)) {
+          continue;
+        }
         let from = value.ref;
         if (typeof from === "function") {
           from = getModelByName(from);
-        }
-        if (value.justOne) {
-          hasOne = true;
         }
         if (
           value.isTransformLocalFieldToObjectID ||
@@ -123,14 +109,11 @@ export class Collection<T> {
               $toString: "$" + value.localField,
             };
           }
-          params.push({
+          paramsArray.push({
             $addFields: addFields,
           });
         }
-        // const { localField, foreignField } = value;
-        // if (foreignField === "_id") { // should change the localField to BSON ObjectID
-        // }
-        params.push({
+        paramsArray.push({
           $lookup: {
             from,
             localField: value.localField,
@@ -139,29 +122,12 @@ export class Collection<T> {
           },
         });
       }
-      console.log(params);
+
       if (options?.findOne) { // need to find one
-        const doc = await this.aggregate(params).next();
-        if (hasOne && doc) {
-          for (const [key, value] of populates) {
-            if (value.justOne) {
-              doc[key] = doc[key][0];
-            }
-          }
-          return doc;
-        }
+        const doc = await this.aggregate(paramsArray).next();
+        return doc;
       } else {
-        const result = await this.aggregate(params).toArray();
-        if (hasOne) {
-          return result.map((doc) => {
-            for (const [key, value] of populates) {
-              if (value.justOne) {
-                doc[key] = doc[key][0];
-              }
-            }
-            return doc;
-          });
-        }
+        const result = await this.aggregate(paramsArray).toArray();
         return result;
       }
     } else {
@@ -246,21 +212,52 @@ export class Collection<T> {
         delete doc._id;
       }
     }
-    if (!this.#schema) {
-      return;
-    }
-    const populates = this.#schema.getPopulates();
+    const populates = this.getPopulates();
     if (!populates) {
       return;
     }
     const { map, params } = populates;
-    for (const [key, value] of Object.entries(params)) {
+    for (const [key, value] of params) {
       if (!map.has(key) || !doc[key]) {
         continue;
       }
-      if (value.justOne) {
-        doc[key] = doc[key][0];
+      const arr = doc[key] as any[];
+      const pickMap = map.get(key);
+      for (let i = 0; i < arr.length; i++) {
+        const item = arr[i];
+        if (value.justOne) {
+          doc[key] = this.pickVirtual(item, pickMap);
+          break;
+        } else {
+          arr[i] = this.pickVirtual(item, pickMap);
+        }
       }
+    }
+  }
+
+  private pickVirtual(virtualDoc: any, pickMap: any) {
+    let needKeep = false; // if specified some key, then will pick this keys
+    for (const k in pickMap) {
+      if (pickMap[k]) {
+        needKeep = true;
+        break;
+      }
+    }
+    if (needKeep) {
+      const newObj: any = {};
+      for (const k in pickMap) {
+        if (pickMap[k]) {
+          newObj[k] = virtualDoc[k];
+        }
+      }
+      return newObj;
+    } else {
+      for (const k in pickMap) {
+        if (!pickMap[k]) {
+          delete virtualDoc[k];
+        }
+      }
+      return virtualDoc;
     }
   }
 

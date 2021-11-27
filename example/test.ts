@@ -26,7 +26,11 @@ Role.virtual("user", {
   isTransformLocalFieldToObjectID: true,
 });
 
-Role.populate("user");
+Role.populate("user", {
+  _id: 0,
+  // group: 1,
+  // title: 1,
+});
 
 const userModel = await getModel<User>(db, User);
 
