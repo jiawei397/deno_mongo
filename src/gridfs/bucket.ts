@@ -127,10 +127,8 @@ export class GridFSBucket {
 
     return new ReadableStream<Uint8Array>({
       start: async (controller) => {
-        const collection = this.#chunksCollection.find({ files_id: id });
-        await collection.forEach((value) =>
-          controller.enqueue(value?.data.buffer)
-        );
+        const collection = await this.#chunksCollection.find({ files_id: id });
+        collection.forEach((value) => controller.enqueue(value?.data.buffer));
         controller.close();
       },
     });
@@ -163,7 +161,7 @@ export class GridFSBucket {
   find(
     filter: Filter<File>,
     options: GridFSFindOptions = {},
-  ): FindCursor<File> {
+  ) {
     return this.#filesCollection.find(filter ?? {}, options);
   }
 

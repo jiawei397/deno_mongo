@@ -33,6 +33,8 @@ export interface CountOptions {
   collation?: Document;
 }
 
+export type PopulateSelect = string | Record<string, 0 | 1> | true;
+
 export interface FindOptions {
   findOne?: boolean;
   skip?: number;
@@ -40,7 +42,9 @@ export interface FindOptions {
   projection?: Document;
   sort?: Document;
   noCursorTimeout?: boolean;
-  popluates: {};
+  // popluates?: {
+  //   [K: string]: PopulateSelect;
+  // };
 
   remainOriginId?: boolean; // is keep _id
 }
@@ -1236,13 +1240,13 @@ interface QueryOptions {
 
 export interface VirtualTypeOptions {
   /** If `ref` is not nullish, this becomes a populated virtual. */
-  ref?: string | Function;
+  ref?: string | Constructor;
 
   /**  The local field to populate on if this is a populated virtual. */
-  localField?: string | Function;
+  localField: string;
 
   /** The foreign field to populate on if this is a populated virtual. */
-  foreignField?: string | Function;
+  foreignField: string;
 
   /**
    * By default, a populated virtual is an array. If you set `justOne`,
@@ -1279,6 +1283,9 @@ export interface VirtualTypeOptions {
 
   /** Additional options like `limit` and `lean`. */
   options?: QueryOptions;
+
+  isTransformLocalFieldToString?: boolean;
+  isTransformLocalFieldToObjectID?: boolean;
 
   /** Additional options for plugins */
   [extra: string]: any;

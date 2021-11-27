@@ -7,24 +7,27 @@ import {
   Hooks,
   MongoHookCallback,
   MongoHookMethod,
+  PopulateSelect,
   SchemaType,
   Target,
   TargetInstance,
-  VirtualType,
   VirtualTypeOptions,
 } from "./types.ts";
 
 export const metadataCache = new Map();
 let modelCaches: Map<SchemaCls, any> | undefined;
+const modelNameCaches = new Map<Constructor, string>();
 export const TYPE_METADATA_KEY = Symbol("design:type");
+export const VIRTUAL_METADATA_KEY = "design:virtual";
 
 export const instanceCache = new Map();
-
-export const virtualCache = new Map();
 
 export class Schema {
   static preHooks: Hooks = new Map();
   static postHooks: Hooks = new Map();
+
+  static populateMap: Map<string, PopulateSelect> = new Map();
+  static populateParams: Map<string, VirtualTypeOptions> = new Map();
 
   static pre(method: MongoHookMethod, callback: MongoHookCallback) {
     return this.hook(this.preHooks, method, callback);
@@ -45,6 +48,15 @@ export class Schema {
     }
     arr.push(callback.bind(this));
     return arr;
+  }
+
+  /** Specifies paths which should be populated with other documents. */
+  static populate(
+    path: string,
+    select?: PopulateSelect,
+  ) {
+    this.populateMap.set(path, select || true);
+    return this;
   }
 
   static getMeta() {
@@ -69,8 +81,18 @@ export class Schema {
   }
 
   static virtual(name: string, options: VirtualTypeOptions) {
-    virtualCache.set(name, options);
+    this.populateParams.set(name, options);
     return this;
+  }
+
+  static getPopulates() {
+    if (this.populateMap.size === 0 || this.populateParams.size === 0) {
+      return;
+    }
+    return {
+      map: this.populateMap,
+      params: this.populateParams,
+    };
   }
 
   @Prop({
@@ -128,11 +150,16 @@ export function Prop(props?: SchemaType) {
 }
 
 export function getModelByName(cls: Constructor, name?: string) {
+  if (modelNameCaches.has(cls)) {
+    return modelNameCaches.get(cls);
+  }
   let modelName = name || cls.name;
   if (!modelName.endsWith("s")) {
     modelName += "s";
   }
-  return modelName.toLowerCase();
+  const last = modelName.toLowerCase();
+  modelNameCaches.set(cls, last);
+  return last;
 }
 
 export async function getModel<T extends Schema>(
@@ -147,7 +174,7 @@ export async function getModel<T extends Schema>(
       return modelCaches.get(cls);
     }
   }
-  const modelName = getModelByName(cls, name);
+  const modelName = getModelByName(cls, name)!;
   const model = db.collection(modelName, cls);
   modelCaches.set(cls, model);
   await initModel(model, cls);

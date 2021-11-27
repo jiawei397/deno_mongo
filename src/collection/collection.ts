@@ -2,7 +2,7 @@
 import { blue, Bson, yellow } from "../../deps.ts";
 import { MongoDriverError } from "../error.ts";
 import { WireProtocol } from "../protocol/mod.ts";
-import { initModel, SchemaCls } from "../schema.ts";
+import { getModelByName, initModel, SchemaCls } from "../schema.ts";
 import {
   AggregateOptions,
   AggregatePipeline,
@@ -22,6 +22,7 @@ import {
   SchemaType,
   UpdateFilter,
   UpdateOptions,
+  VirtualTypeOptions,
 } from "../types.ts";
 import { AggregateCursor } from "./commands/aggregate.ts";
 import { FindCursor } from "./commands/find.ts";
@@ -44,30 +45,147 @@ export class Collection<T> {
     this.#schema = schema;
   }
 
-  find(filter?: Document, options?: FindOptions): FindCursor<T> {
+  getPopulates() {
+    if (!this.#schema) {
+      return;
+    }
+    const populates = this.#schema.getPopulates();
+    if (!populates) {
+      return;
+    }
+    const { map, params } = populates; // 通过map来过滤populates
+    const result = new Map<string, VirtualTypeOptions>();
+    for (const [key, value] of params) {
+      if (!map.has(key)) {
+        continue;
+      }
+      result.set(key, value);
+    }
+    if (result.size === 0) {
+      return;
+    }
+    return result;
+  }
+
+  private async _find(
+    filter?: Document,
+    options?: FindOptions,
+  ) {
     let others = {};
     if (options) {
-      // deno-lint-ignore no-unused-vars
-      const { remainOriginId, ..._others } = options; // must drop it otherwise will call error
+      const { remainOriginId: _, ..._others } = options; // must drop it otherwise will call error
       others = _others;
     }
-    const res = new FindCursor<T>({
-      filter,
-      protocol: this.#protocol,
-      collectionName: this.name,
-      dbName: this.#dbName,
-      options: others,
-    });
-    if (options?.skip) {
-      res.skip(options.skip);
+
+    const populates = this.getPopulates();
+    if (populates) {
+      const params = [];
+      if (filter) {
+        params.push({
+          $match: filter,
+        });
+      }
+      if (options?.sort) {
+        params.push({
+          $sort: options.sort,
+        });
+      }
+      if (options?.skip !== undefined) {
+        params.push({
+          $skip: options.skip,
+        });
+      }
+      if (options?.limit) {
+        params.push({
+          $limit: options.limit,
+        });
+      }
+      const addFields: any = {};
+      let hasOne = false; // check if has justOne
+      for (const [key, value] of populates) {
+        let from = value.ref;
+        if (typeof from === "function") {
+          from = getModelByName(from);
+        }
+        if (value.justOne) {
+          hasOne = true;
+        }
+        if (
+          value.isTransformLocalFieldToObjectID ||
+          value.isTransformObjectIDToLocalField
+        ) {
+          if (value.isTransformLocalFieldToObjectID) {
+            addFields[value.localField] = {
+              $toObjectId: "$" + value.localField,
+            };
+          } else if (value.isTransformLocalFieldToString) {
+            addFields[value.localField] = {
+              $toString: "$" + value.localField,
+            };
+          }
+          params.push({
+            $addFields: addFields,
+          });
+        }
+        // const { localField, foreignField } = value;
+        // if (foreignField === "_id") { // should change the localField to BSON ObjectID
+        // }
+        params.push({
+          $lookup: {
+            from,
+            localField: value.localField,
+            foreignField: value.foreignField,
+            as: key,
+          },
+        });
+      }
+      console.log(params);
+      if (options?.findOne) { // need to find one
+        const doc = await this.aggregate(params).next();
+        if (hasOne && doc) {
+          for (const [key, value] of populates) {
+            if (value.justOne) {
+              doc[key] = doc[key][0];
+            }
+          }
+          return doc;
+        }
+      } else {
+        const result = await this.aggregate(params).toArray();
+        if (hasOne) {
+          return result.map((doc) => {
+            for (const [key, value] of populates) {
+              if (value.justOne) {
+                doc[key] = doc[key][0];
+              }
+            }
+            return doc;
+          });
+        }
+        return result;
+      }
+    } else {
+      const res = new FindCursor<T>({
+        filter,
+        protocol: this.#protocol,
+        collectionName: this.name,
+        dbName: this.#dbName,
+        options: others,
+      });
+      if (options?.skip) {
+        res.skip(options.skip);
+      }
+      if (options?.limit) {
+        res.limit(options.limit);
+      }
+      if (options?.sort) {
+        res.sort(options.sort);
+      }
+      if (options?.findOne) {
+        return res.next();
+      }
+      return res.toArray();
     }
-    if (options?.limit) {
-      res.limit(options.limit);
-    }
-    if (options?.sort) {
-      res.sort(options.sort);
-    }
-    return res;
   }
 
   private async preFind(
@@ -93,26 +211,30 @@ export class Collection<T> {
     }
   }
 
-  async findOne(
+  async findOne<U = T>(
     filter?: Filter<T>,
     options?: FindOptions,
-  ): Promise<T | undefined> {
+  ) {
     await this.preFind(MongoHookMethod.findOne, filter, options);
-    const cursor = this.find(filter, options);
-    const doc = await cursor.next();
+    const doc = await this._find(filter, {
+      ...options,
+      findOne: true,
+    });
     await this.afterFind(doc, filter, options);
-    return doc;
+    return doc as unknown as U;
   }
 
-  async findMany(
+  async findMany<U = T>(
     filter?: Document,
     options?: FindOptions,
-  ): Promise<T[]> {
+  ) {
     await this.preFind(MongoHookMethod.findMany, filter, options);
-    const docs = await this.find(filter, options).toArray();
+    const docs = await this._find(filter, options);
     await this.afterFind(docs, filter, options);
-    return docs;
+    return docs as unknown as U[];
   }
+
+  find = this.findMany;
 
   private formatFindDoc(doc: any, remainOriginId?: boolean) {
     if (!doc) {
@@ -122,6 +244,22 @@ export class Collection<T> {
       doc.id = doc._id.toString();
       if (!remainOriginId) {
         delete doc._id;
+      }
+    }
+    if (!this.#schema) {
+      return;
+    }
+    const populates = this.#schema.getPopulates();
+    if (!populates) {
+      return;
+    }
+    const { map, params } = populates;
+    for (const [key, value] of Object.entries(params)) {
+      if (!map.has(key) || !doc[key]) {
+        continue;
+      }
+      if (value.justOne) {
+        doc[key] = doc[key][0];
       }
     }
   }

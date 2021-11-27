@@ -31,7 +31,7 @@ import type {
   MongoHookMethod,
 } from "https://deno.land/x/jw_mongo@v0.24.20/mod.ts";
 
-const db = await getDB("mongodb://localhost:27017");
+const db = await getDB("mongodb://localhost:27017/test");
 
 class User extends Schema {
   @Prop()
