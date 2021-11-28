@@ -20,8 +20,8 @@ import {
   DropOptions,
   Filter,
   FindAndModifyOptions,
+  FindExOptions,
   FindOptions,
-  FindOriginOptions,
   InsertDocument,
   InsertOptions,
   MongoHookMethod,
@@ -71,7 +71,7 @@ export class Collection<T> {
 
   private _find(
     filter?: Document,
-    options?: FindOptions,
+    options?: FindExOptions,
   ) {
     const {
       remainOriginId: _,
@@ -88,16 +88,16 @@ export class Collection<T> {
         options,
       });
     } else {
-      return this.findWithOrigin(
+      return this.find(
         filter,
         others,
       );
     }
   }
 
-  private findWithOrigin(
+  find(
     filter?: Document,
-    options?: FindOriginOptions,
+    options?: FindOptions,
   ) {
     const res = new FindCursor<T>({
       filter,
@@ -210,7 +210,7 @@ export class Collection<T> {
 
   async findOne<U = T>(
     filter?: Filter<T>,
-    options?: FindOptions,
+    options?: FindExOptions,
   ) {
     await this.preFind(MongoHookMethod.findOne, filter, options);
     const doc = await this._find(filter, options).next();
@@ -220,7 +220,7 @@ export class Collection<T> {
 
   async findMany<U = T>(
     filter?: Document,
-    options?: FindOptions,
+    options?: FindExOptions,
   ) {
     await this.preFind(MongoHookMethod.findMany, filter, options);
     const docs = await this._find(filter, options).toArray();
@@ -228,9 +228,7 @@ export class Collection<T> {
     return docs as unknown as U[];
   }
 
-  find = this.findWithOrigin;
-
-  private formatFindDoc(doc: any, options?: FindOptions) {
+  private formatFindDoc(doc: any, options?: FindExOptions) {
     if (!doc) {
       return;
     }

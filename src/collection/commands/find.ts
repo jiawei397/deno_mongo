@@ -1,11 +1,11 @@
 import { CommandCursor, WireProtocol } from "../../protocol/mod.ts";
-import { Document, FindOriginOptions } from "../../types.ts";
+import { Document, FindOptions } from "../../types.ts";
 
 interface FindCursorContext {
   dbName: string;
   collectionName: string;
   protocol: WireProtocol;
-  options: FindOriginOptions;
+  options: FindOptions;
   filter?: Document;
 }
 

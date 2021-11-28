@@ -2,7 +2,7 @@ version: 0.24.20
 name: jw_mongo
 scripts:
   dev:
-    cmd: "deno run example/test.ts"
+    cmd: "deno run example/demo.ts"
     desc: "test"
     allow:
       - net
