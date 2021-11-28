@@ -1,4 +1,4 @@
-version: 0.24.20
+version: 0.25.0
 name: jw_mongo
 scripts:
   dev:
