@@ -49,12 +49,12 @@ const userModel = await getModel<User>(db, User);
 const roleModel = await getModel<Role>(db, Role);
 
 // roleModel.insertOne({
-//   userId: "618f28832b0517228b47c8aa",
+//   userId: id,
 //   name: "normal",
 // });
 
 console.log(
-  await roleModel.find({}, {
+  await roleModel.findMany({}, {
     // skip: 1,
     // limit: 1,
     populates: {
@@ -64,7 +64,8 @@ console.log(
       //   title: 1,
       // },
       // user: "group",
-      user: "-_id -title",
+      user: true,
+      // user: "-_id -title",
     },
   }),
 );

@@ -9,6 +9,8 @@ export default function cleanup() {
       await db.collection("mongo_test_users").drop().catch((e) => e);
       await db.collection("mongo_test_schemas").drop().catch((e) => e);
       await db.collection("find_and_modify").drop().catch((e) => e);
+      await db.collection("mongo_test_schema_users").drop().catch((e) => e);
+      await db.collection("mongo_test_schema_roles").drop().catch((e) => e);
       await new GridFSBucket(db, { bucketName: "deno_logo" })
         .drop().catch((e) => e);
       await new GridFSBucket(db, { bucketName: "echo" })

@@ -53,6 +53,11 @@ export class Schema {
     return this.hook(this.postHooks, method, callback);
   }
 
+  static clearHooks() {
+    this.preHooks.clear();
+    this.postHooks.clear();
+  }
+
   static hook(
     hooks: Hooks,
     method: MongoHookMethod,
@@ -126,6 +131,8 @@ export class Schema {
     default: Date.now,
   })
   modifyTime?: Date;
+
+  _id!: string; // default id
 }
 
 export type SchemaCls = typeof Schema;

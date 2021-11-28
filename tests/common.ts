@@ -1,7 +1,9 @@
 import { MongoClient } from "../mod.ts";
 import { assertEquals } from "./test.deps.ts";
 
-const hostname = "192.168.21.176";
+const hostname = "localhost";
+
+export const dbUrl = "mongodb://localhost:27018/test";
 
 export function testWithClient(
   name: string,

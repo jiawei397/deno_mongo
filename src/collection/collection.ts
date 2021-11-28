@@ -88,24 +88,23 @@ export class Collection<T> {
         options,
       });
     } else {
-      return this.findWithOrigin({
+      return this.findWithOrigin(
         filter,
-        options: others,
-      });
+        others,
+      );
     }
   }
 
-  private findWithOrigin(params: {
-    filter?: Document;
-    options: FindOriginOptions;
-  }) {
-    const { filter, options } = params;
+  private findWithOrigin(
+    filter?: Document,
+    options?: FindOriginOptions,
+  ) {
     const res = new FindCursor<T>({
       filter,
       protocol: this.#protocol,
       collectionName: this.name,
       dbName: this.#dbName,
-      options,
+      options: options || {},
     });
     if (options?.skip) {
       res.skip(options.skip);
@@ -116,10 +115,7 @@ export class Collection<T> {
     if (options?.sort) {
       res.sort(options.sort);
     }
-    if (options?.findOne) {
-      return res.next();
-    }
-    return res.toArray();
+    return res;
   }
 
   private findWithVirtual(virturalOptions: {
@@ -186,11 +182,7 @@ export class Collection<T> {
       });
     }
 
-    if (options?.findOne) { // need to find one
-      return this.aggregate(paramsArray).next();
-    } else {
-      return this.aggregate(paramsArray).toArray();
-    }
+    return this.aggregate(paramsArray);
   }
 
   private async preFind(
@@ -221,10 +213,7 @@ export class Collection<T> {
     options?: FindOptions,
   ) {
     await this.preFind(MongoHookMethod.findOne, filter, options);
-    const doc = await this._find(filter, {
-      ...options,
-      findOne: true,
-    });
+    const doc = await this._find(filter, options).next();
     await this.afterFind(doc, filter, options);
     return doc as unknown as U;
   }
@@ -234,12 +223,12 @@ export class Collection<T> {
     options?: FindOptions,
   ) {
     await this.preFind(MongoHookMethod.findMany, filter, options);
-    const docs = await this._find(filter, options);
+    const docs = await this._find(filter, options).toArray();
     await this.afterFind(docs, filter, options);
     return docs as unknown as U[];
   }
 
-  find = this.findMany;
+  find = this.findWithOrigin;
 
   private formatFindDoc(doc: any, options?: FindOptions) {
     if (!doc) {

@@ -12,14 +12,12 @@ import {
   getInstance,
   getMetadata,
   getModel,
-  instanceCache,
   Prop,
   Schema,
 } from "../../src/schema.ts";
+import { dbUrl } from "../common.ts";
 
 class User extends Schema {
-  _id!: string;
-
   @Prop({
     required: true,
     index: true,
@@ -32,6 +30,8 @@ class User extends Schema {
   age!: number;
 }
 
+const db = await getDB(dbUrl);
+
 export default function schemaTests() {
   Deno.test({
     name: "schema instance test",
@@ -39,7 +39,6 @@ export default function schemaTests() {
       const instance1 = getInstance(User);
       const instance2 = getInstance(User);
       assertEquals(instance1, instance2);
-      console.log(instanceCache);
     },
   });
 
@@ -87,11 +86,10 @@ export default function schemaTests() {
   Deno.test({
     name: "insert and find",
     async fn() {
-      const db = await getDB("mongodb://192.168.21.176:27018/test");
       const model = await getModel<User>(
         db,
         User,
-        "mongo_test_schemas",
+        "mongo_test_schema_users",
       );
 
       const id = await model.insertOne({
@@ -263,7 +261,149 @@ export default function schemaTests() {
         );
       }
 
-      closeConnection();
+      {
+        await model.deleteMany({});
+        const nowArr = await model.find().toArray();
+        assertEquals(nowArr.length, 0, "clear all");
+        User.clearHooks();
+      }
+    },
+  });
+
+  Deno.test({
+    name: "populate",
+    async fn() {
+      const userModel = await getModel<User>(
+        db,
+        User,
+        "mongo_test_schema_users",
+      );
+
+      const user1 = {
+        name: "zhangsan",
+        age: 18,
+      };
+      const userId1 = await userModel.insertOne(user1);
+
+      const user2 = {
+        name: "lisi",
+        age: 22,
+      };
+      const userId2 = await userModel.insertOne(user2);
+
+      class Role extends Schema {
+        @Prop()
+        userId!: string;
+
+        @Prop()
+        name!: string;
+
+        user?: User;
+      }
+
+      Role.virtual("user", {
+        ref: User,
+        localField: "userId",
+        foreignField: "_id",
+        justOne: true,
+        isTransformLocalFieldToObjectID: true,
+      });
+
+      const roleModel = await getModel<Role>(
+        db,
+        Role,
+        "mongo_test_schema_roles",
+      );
+      const role1 = {
+        name: "admin",
+        userId: userId1,
+      };
+      roleModel.insertOne(role1);
+
+      const role2 = {
+        name: "normal",
+        userId: userId2,
+      };
+      roleModel.insertOne(role2);
+
+      {
+        const arr = await roleModel.findMany({}, {
+          populates: {},
+        });
+        assertEquals(arr.length, 2);
+        assertEquals(arr[0].user, undefined);
+        assertEquals(arr[1].user, undefined);
+      }
+      {
+        const arr = await roleModel.findMany({}, {
+          populates: {
+            user: {
+              name: 1,
+              age: 1,
+            },
+          },
+        });
+        assertEquals(arr.length, 2);
+        assertEquals(Array.isArray(arr[0].user), false, "justOne work");
+        assertEquals(arr[0].user!.name, user1.name);
+        assertEquals(arr[0].user!.age, user1.age);
+        assertEquals(arr[1].user!.name, user2.name);
+        assertEquals(arr[1].user!.age, user2.age);
+        const user = arr[0].user!;
+        assertEquals(Object.keys(user).length, 2);
+        assertEquals(Object.keys(user), ["name", "age"]);
+        assertEquals(arr[0].user!._id, undefined);
+        assertEquals(arr[1].user!._id, undefined);
+      }
+
+      {
+        const arr = await roleModel.findMany({}, {
+          populates: {
+            user: {
+              _id: 0,
+              name: 0,
+              // age: 1,
+            },
+            // user: "group",
+            // user: "-_id -title",
+          },
+        });
+        assertEquals(arr.length, 2);
+        const user = arr[0].user!;
+        assertEquals(user.name, undefined);
+        assertEquals(user._id, undefined);
+        assertExists(user.age);
+      }
+
+      {
+        const arr = await roleModel.findMany({}, {
+          populates: {
+            user: "name age",
+          },
+        });
+        assertEquals(arr.length, 2);
+        const user = arr[0].user!;
+        assertEquals(Object.keys(user).length, 2);
+        assertEquals(Object.keys(user), ["name", "age"]);
+        assertEquals(arr[0].user!._id, undefined);
+        assertEquals(arr[1].user!._id, undefined);
+      }
+
+      {
+        const arr = await roleModel.findMany({}, {
+          populates: {
+            user: "-_id -name",
+          },
+        });
+        assertEquals(arr.length, 2);
+        assertEquals(arr.length, 2);
+        const user = arr[0].user!;
+        assertEquals(user.name, undefined);
+        assertEquals(user._id, undefined);
+        assertExists(user.age);
+      }
+
+      // return closeConnection();
     },
   });
 }
