@@ -17,8 +17,6 @@ import {
 export const metadataCache = new Map();
 let modelCaches: Map<SchemaCls, any> | undefined;
 const modelNameCaches = new Map<Constructor, string>();
-export const TYPE_METADATA_KEY = Symbol("design:type");
-export const VIRTUAL_METADATA_KEY = "design:virtual";
 
 export const instanceCache = new Map();
 
