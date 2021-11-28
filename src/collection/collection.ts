@@ -2,7 +2,12 @@
 import { blue, Bson, yellow } from "../../deps.ts";
 import { MongoDriverError } from "../error.ts";
 import { WireProtocol } from "../protocol/mod.ts";
-import { getModelByName, initModel, SchemaCls } from "../schema.ts";
+import {
+  getModelByName,
+  initModel,
+  SchemaCls,
+  transferPopulateSelect,
+} from "../schema.ts";
 import {
   AggregateOptions,
   AggregatePipeline,
@@ -19,6 +24,7 @@ import {
   InsertDocument,
   InsertOptions,
   MongoHookMethod,
+  PopulateSelect,
   SchemaType,
   UpdateFilter,
   UpdateOptions,
@@ -45,27 +51,40 @@ export class Collection<T> {
     this.#schema = schema;
   }
 
-  getPopulates() {
-    if (!this.#schema) {
-      return;
+  getPopulateMap(populates?: Record<string, PopulateSelect>) {
+    let populateMap: Map<string, PopulateSelect> | undefined;
+    if (populates) {
+      populateMap = new Map();
+      for (const key in populates) {
+        populateMap.set(key, transferPopulateSelect(populates[key]));
+      }
+    } else {
+      populateMap = this.#schema?.getPopulateMap();
     }
-    const populates = this.#schema.getPopulates();
-    return populates;
+    return populateMap;
+  }
+
+  getPopulateParams() {
+    return this.#schema?.getPopulateParams();
   }
 
   private async _find(
     filter?: Document,
     options?: FindOptions,
   ) {
-    let others = {};
-    if (options) {
-      const { remainOriginId: _, ..._others } = options; // must drop it otherwise will call error
-      others = _others;
+    if (!options) {
+      options = {};
     }
-
-    const populates = this.getPopulates();
-    if (populates) {
-      const { map, params } = populates;
+    const {
+      remainOriginId: _,
+      populates,
+      ...others
+    } = options; // must drop it otherwise will call error
+    const params = this.getPopulateParams();
+    const populateMap = this.getPopulateMap(populates);
+    // console.log(params, _poluates, populateMap);
+    if (params && populateMap) {
+      const map = populateMap;
       const paramsArray = [];
       if (filter) {
         paramsArray.push({
@@ -170,10 +189,10 @@ export class Collection<T> {
   ) {
     if (Array.isArray(docs)) {
       await this.postHooks(MongoHookMethod.findMany, docs, filter, options);
-      docs.forEach((doc) => this.formatFindDoc(doc, options?.remainOriginId));
+      docs.forEach((doc) => this.formatFindDoc(doc, options));
     } else {
       await this.postHooks(MongoHookMethod.findOne, docs, filter, options);
-      this.formatFindDoc(docs, options?.remainOriginId);
+      this.formatFindDoc(docs, options);
     }
   }
 
@@ -202,21 +221,25 @@ export class Collection<T> {
 
   find = this.findMany;
 
-  private formatFindDoc(doc: any, remainOriginId?: boolean) {
+  private formatFindDoc(doc: any, options?: FindOptions) {
     if (!doc) {
       return;
     }
+    const { remainOriginId, populates } = options || {};
     if (!doc.id) {
       doc.id = doc._id.toString();
       if (!remainOriginId) {
         delete doc._id;
       }
     }
-    const populates = this.getPopulates();
-    if (!populates) {
+    const params = this.getPopulateParams();
+    if (!params) {
       return;
     }
-    const { map, params } = populates;
+    const map = this.getPopulateMap(populates);
+    if (!map) {
+      return;
+    }
     for (const [key, value] of params) {
       if (!map.has(key) || !doc[key]) {
         continue;

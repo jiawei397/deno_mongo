@@ -37,3 +37,11 @@ export class BaseService {
     });
   }
 }
+
+export function pick(obj: any, keys: string[]) {
+  const result: any = {};
+  for (const key of keys) {
+    result[key] = obj[key];
+  }
+  return result;
+}

@@ -42,9 +42,7 @@ export interface FindOptions {
   projection?: Document;
   sort?: Document;
   noCursorTimeout?: boolean;
-  // popluates?: {
-  //   [K: string]: PopulateSelect;
-  // };
+  populates?: Record<string, PopulateSelect>;
 
   remainOriginId?: boolean; // is keep _id
 }

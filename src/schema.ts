@@ -22,6 +22,23 @@ export const VIRTUAL_METADATA_KEY = "design:virtual";
 
 export const instanceCache = new Map();
 
+export function transferPopulateSelect(
+  select?: PopulateSelect,
+): PopulateSelect {
+  let _select: any = select || true;
+  if (typeof select === "string") {
+    _select = {};
+    select.split(" ").forEach((item) => {
+      if (item.startsWith("-")) {
+        _select[item.substr(1)] = 0;
+      } else {
+        _select[item] = 1;
+      }
+    });
+  }
+  return _select;
+}
+
 export class Schema {
   static preHooks: Hooks = new Map();
   static postHooks: Hooks = new Map();
@@ -55,17 +72,7 @@ export class Schema {
     path: string,
     select?: PopulateSelect,
   ) {
-    let _select: any = select || true;
-    if (typeof select === "string") {
-      _select = {};
-      select.split(" ").forEach((item) => {
-        if (item.startsWith("-")) {
-          _select[item.substr(1)] = 0;
-        } else {
-          _select[item] = 1;
-        }
-      });
-    }
+    const _select = transferPopulateSelect(select);
     this.populateMap.set(path, _select);
     return this;
   }
@@ -96,14 +103,18 @@ export class Schema {
     return this;
   }
 
-  static getPopulates() {
-    if (this.populateMap.size === 0 || this.populateParams.size === 0) {
+  static getPopulateMap() {
+    if (this.populateMap.size === 0) {
       return;
     }
-    return {
-      map: this.populateMap,
-      params: this.populateParams,
-    };
+    return this.populateMap;
+  }
+
+  static getPopulateParams() {
+    if (this.populateParams.size === 0) {
+      return;
+    }
+    return this.populateParams;
   }
 
   @Prop({

@@ -33,7 +33,7 @@ Role.virtual("user", {
 // });
 // Role.populate("user", "group");
 // Role.populate("user", "-group -createTime");
-Role.populate("user", "title group");
+// Role.populate("user", "title group");
 
 const userModel = await getModel<User>(db, User);
 
@@ -57,5 +57,14 @@ console.log(
   await roleModel.find({}, {
     // skip: 1,
     // limit: 1,
+    populates: {
+      // user: {
+      //   // _id: 0,
+      //   group: 1,
+      //   title: 1,
+      // },
+      // user: "group",
+      user: "-_id -title",
+    },
   }),
 );
