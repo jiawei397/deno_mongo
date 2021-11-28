@@ -21,6 +21,7 @@ import {
   Filter,
   FindAndModifyOptions,
   FindOptions,
+  FindOriginOptions,
   InsertDocument,
   InsertOptions,
   MongoHookMethod,
@@ -68,108 +69,127 @@ export class Collection<T> {
     return this.#schema?.getPopulateParams();
   }
 
-  private async _find(
+  private _find(
     filter?: Document,
     options?: FindOptions,
   ) {
-    if (!options) {
-      options = {};
-    }
     const {
       remainOriginId: _,
       populates,
       ...others
-    } = options; // must drop it otherwise will call error
-    const params = this.getPopulateParams();
+    } = options || {}; // must drop it otherwise will call error
+    const populateParams = this.getPopulateParams();
     const populateMap = this.getPopulateMap(populates);
-    // console.log(params, _poluates, populateMap);
-    if (params && populateMap) {
-      const map = populateMap;
-      const paramsArray = [];
-      if (filter) {
-        paramsArray.push({
-          $match: filter,
-        });
-      }
-      if (options?.sort) {
-        paramsArray.push({
-          $sort: options.sort,
-        });
-      }
-      if (options?.skip !== undefined) {
-        paramsArray.push({
-          $skip: options.skip,
-        });
-      }
-      if (options?.limit) {
-        paramsArray.push({
-          $limit: options.limit,
-        });
-      }
-      const addFields: any = {};
-      for (const [key, value] of params) {
-        if (!map.has(key)) {
-          continue;
-        }
-        let from = value.ref;
-        if (typeof from === "function") {
-          from = getModelByName(from);
-        }
-        if (
-          value.isTransformLocalFieldToObjectID ||
-          value.isTransformObjectIDToLocalField
-        ) {
-          if (value.isTransformLocalFieldToObjectID) {
-            addFields[value.localField] = {
-              $toObjectId: "$" + value.localField,
-            };
-          } else if (value.isTransformLocalFieldToString) {
-            addFields[value.localField] = {
-              $toString: "$" + value.localField,
-            };
-          }
-          paramsArray.push({
-            $addFields: addFields,
-          });
-        }
-        paramsArray.push({
-          $lookup: {
-            from,
-            localField: value.localField,
-            foreignField: value.foreignField,
-            as: key,
-          },
-        });
-      }
-
-      if (options?.findOne) { // need to find one
-        const doc = await this.aggregate(paramsArray).next();
-        return doc;
-      } else {
-        const result = await this.aggregate(paramsArray).toArray();
-        return result;
-      }
-    } else {
-      const res = new FindCursor<T>({
+    if (populateParams && populateMap) {
+      return this.findWithVirtual({
+        populateMap,
+        populateParams,
         filter,
-        protocol: this.#protocol,
-        collectionName: this.name,
-        dbName: this.#dbName,
+        options,
+      });
+    } else {
+      return this.findWithOrigin({
+        filter,
         options: others,
       });
-      if (options?.skip) {
-        res.skip(options.skip);
+    }
+  }
+
+  private findWithOrigin(params: {
+    filter?: Document;
+    options: FindOriginOptions;
+  }) {
+    const { filter, options } = params;
+    const res = new FindCursor<T>({
+      filter,
+      protocol: this.#protocol,
+      collectionName: this.name,
+      dbName: this.#dbName,
+      options,
+    });
+    if (options?.skip) {
+      res.skip(options.skip);
+    }
+    if (options?.limit) {
+      res.limit(options.limit);
+    }
+    if (options?.sort) {
+      res.sort(options.sort);
+    }
+    if (options?.findOne) {
+      return res.next();
+    }
+    return res.toArray();
+  }
+
+  private findWithVirtual(virturalOptions: {
+    populateMap: Map<string, PopulateSelect>;
+    populateParams: Map<string, VirtualTypeOptions>;
+    filter?: Document;
+    options?: FindOptions;
+  }) {
+    const { populateMap, populateParams, filter, options } = virturalOptions;
+    const paramsArray = [];
+    if (filter) {
+      paramsArray.push({
+        $match: filter,
+      });
+    }
+    if (options?.sort) {
+      paramsArray.push({
+        $sort: options.sort,
+      });
+    }
+    if (options?.skip !== undefined) {
+      paramsArray.push({
+        $skip: options.skip,
+      });
+    }
+    if (options?.limit) {
+      paramsArray.push({
+        $limit: options.limit,
+      });
+    }
+    const addFields: any = {};
+    for (const [key, value] of populateParams) {
+      if (!populateMap.has(key)) {
+        continue;
       }
-      if (options?.limit) {
-        res.limit(options.limit);
+      let from = value.ref;
+      if (typeof from === "function") {
+        from = getModelByName(from);
       }
-      if (options?.sort) {
-        res.sort(options.sort);
+      if (
+        value.isTransformLocalFieldToObjectID ||
+        value.isTransformObjectIDToLocalField
+      ) {
+        if (value.isTransformLocalFieldToObjectID) {
+          addFields[value.localField] = {
+            $toObjectId: "$" + value.localField,
+          };
+        } else if (value.isTransformLocalFieldToString) {
+          addFields[value.localField] = {
+            $toString: "$" + value.localField,
+          };
+        }
+        paramsArray.push({
+          $addFields: addFields,
+        });
       }
-      if (options?.findOne) {
-        return res.next();
-      }
-      return res.toArray();
+      paramsArray.push({
+        $lookup: {
+          from,
+          localField: value.localField,
+          foreignField: value.foreignField,
+          as: key,
+        },
+      });
+    }
+
+    if (options?.findOne) { // need to find one
+      return this.aggregate(paramsArray).next();
+    } else {
+      return this.aggregate(paramsArray).toArray();
     }
   }
 

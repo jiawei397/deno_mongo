@@ -35,13 +35,16 @@ export interface CountOptions {
 
 export type PopulateSelect = string | Record<string, 0 | 1> | true;
 
-export interface FindOptions {
+export interface FindOriginOptions {
   findOne?: boolean;
   skip?: number;
   limit?: number;
   projection?: Document;
   sort?: Document;
   noCursorTimeout?: boolean;
+}
+
+export interface FindOptions extends FindOriginOptions {
   populates?: Record<string, PopulateSelect>;
 
   remainOriginId?: boolean; // is keep _id
