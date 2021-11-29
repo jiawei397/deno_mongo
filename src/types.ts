@@ -35,6 +35,8 @@ export interface CountOptions {
 
 export type PopulateSelect = string | Record<string, 0 | 1> | true;
 
+export type RealPopulateSelect = Exclude<PopulateSelect, string>;
+
 export interface FindOptions {
   findOne?: boolean;
   skip?: number;

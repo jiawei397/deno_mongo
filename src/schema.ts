@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { green } from "../deps.ts";
-import { Collection } from "../mod.ts";
+import { Collection } from "./collection/collection.ts";
 import { Database } from "./database.ts";
 import {
   Constructor,
@@ -8,6 +8,7 @@ import {
   MongoHookCallback,
   MongoHookMethod,
   PopulateSelect,
+  RealPopulateSelect,
   SchemaType,
   Target,
   TargetInstance,
@@ -22,7 +23,7 @@ export const instanceCache = new Map();
 
 export function transferPopulateSelect(
   select?: PopulateSelect,
-): PopulateSelect {
+): RealPopulateSelect {
   let _select: any = select || true;
   if (typeof select === "string") {
     _select = {};
@@ -41,7 +42,7 @@ export class Schema {
   static preHooks: Hooks = new Map();
   static postHooks: Hooks = new Map();
 
-  static populateMap: Map<string, PopulateSelect> = new Map();
+  static populateMap: Map<string, RealPopulateSelect> = new Map();
   static populateParams: Map<string, VirtualTypeOptions> = new Map();
 
   static pre(method: MongoHookMethod, callback: MongoHookCallback) {

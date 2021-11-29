@@ -26,6 +26,7 @@ import {
   InsertOptions,
   MongoHookMethod,
   PopulateSelect,
+  RealPopulateSelect,
   SchemaType,
   UpdateFilter,
   UpdateOptions,
@@ -53,7 +54,7 @@ export class Collection<T> {
   }
 
   getPopulateMap(populates?: Record<string, PopulateSelect>) {
-    let populateMap: Map<string, PopulateSelect> | undefined;
+    let populateMap: Map<string, RealPopulateSelect> | undefined;
     if (populates) {
       populateMap = new Map();
       for (const key in populates) {
@@ -233,12 +234,7 @@ export class Collection<T> {
       return;
     }
     const { remainOriginId, populates } = options || {};
-    if (!doc.id) {
-      doc.id = doc._id.toString();
-      if (!remainOriginId) {
-        delete doc._id;
-      }
-    }
+    this.transferId(doc, remainOriginId);
     const params = this.getPopulateParams();
     if (!params) {
       return;
@@ -256,35 +252,64 @@ export class Collection<T> {
       for (let i = 0; i < arr.length; i++) {
         const item = arr[i];
         if (value.justOne) {
-          doc[key] = this.pickVirtual(item, pickMap);
+          doc[key] = this.pickVirtual(item, pickMap!, remainOriginId);
           break;
         } else {
-          arr[i] = this.pickVirtual(item, pickMap);
+          arr[i] = this.pickVirtual(item, pickMap!, remainOriginId);
         }
       }
     }
   }
 
-  private pickVirtual(virtualDoc: any, pickMap: any) {
-    let needKeep = false; // if specified some key, then will pick this keys
-    for (const k in pickMap) {
-      if (pickMap[k]) {
-        needKeep = true;
-        break;
+  private transferId(doc: any, remainOriginId?: boolean) {
+    const hasOwnId = "id" in doc;
+    if (!hasOwnId) {
+      doc.id = doc._id.toString();
+      if (!remainOriginId) {
+        delete doc._id;
       }
     }
-    if (needKeep) {
-      const newObj: any = {};
+  }
+
+  private pickVirtual(
+    virtualDoc: any,
+    pickMap: Exclude<PopulateSelect, string>,
+    remainOriginId?: boolean,
+  ) {
+    let needPick = false; // if specified some key, then will pick this keys
+    if (typeof pickMap === "object") {
       for (const k in pickMap) {
         if (pickMap[k]) {
-          newObj[k] = virtualDoc[k];
+          needPick = true;
+          break;
+        }
+      }
+    }
+    if (needPick) {
+      const newObj: any = {};
+      if (typeof pickMap === "object") {
+        for (const k in pickMap) {
+          if (pickMap[k]) {
+            newObj[k] = virtualDoc[k];
+          }
+        }
+        if (pickMap["id"]) {
+          newObj._id = virtualDoc._id;
+          this.transferId(newObj, remainOriginId);
         }
       }
       return newObj;
     } else {
-      for (const k in pickMap) {
-        if (!pickMap[k]) {
-          delete virtualDoc[k];
+      if (pickMap === true) {
+        this.transferId(virtualDoc, remainOriginId);
+      } else {
+        for (const k in pickMap) {
+          if (!pickMap[k]) {
+            delete virtualDoc[k];
+          }
+        }
+        if (pickMap.id) {
+          this.transferId(virtualDoc, remainOriginId);
         }
       }
       return virtualDoc;
