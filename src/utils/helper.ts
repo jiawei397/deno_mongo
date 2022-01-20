@@ -4,6 +4,7 @@ import { MongoClient } from "../client.ts";
 import { Collection } from "../collection/collection.ts";
 import { Database } from "../database.ts";
 import { getModel, SchemaCls } from "../schema.ts";
+import { parse } from "./uri.ts";
 
 let connectedPromise: Promise<any>;
 const client = new MongoClient();
@@ -16,7 +17,10 @@ export function getDB(db: string): Promise<Database> {
   if (!connectedPromise) {
     connectedPromise = client.connect(db).then(() => {
       console.info(`connected mongo：${yellow(db)}`);
-      return client.database();
+      return parse(db.split("?")[0]);
+    }).then((options) => {
+      console.info(`connected mongo db：${yellow(options.db)}`);
+      return client.database(options.db);
     });
   }
   return connectedPromise;
