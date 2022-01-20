@@ -28,11 +28,11 @@ import {
   getModel,
   Prop,
   Schema,
-} from "https://deno.land/x/jw_mongo@v0.25.2/mod.ts";
+} from "https://deno.land/x/jw_mongo@v0.25.3/mod.ts";
 import type {
   Document,
   MongoHookMethod,
-} from "https://deno.land/x/jw_mongo@v0.25.2/mod.ts";
+} from "https://deno.land/x/jw_mongo@v0.25.3/mod.ts";
 
 const db = await getDB("mongodb://localhost:27017/test");
 
@@ -118,7 +118,7 @@ await model.insertOne({
 Below is origin example:
 
 ```ts
-import { Bson, MongoClient } from "https://deno.land/x/jw_mongo@v0.25.2/mod.ts";
+import { Bson, MongoClient } from "https://deno.land/x/jw_mongo@v0.25.3/mod.ts";
 
 const client = new MongoClient();
 
