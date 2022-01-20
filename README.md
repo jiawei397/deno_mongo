@@ -5,6 +5,9 @@ extend some API.
 
 > **deno_mongo** is a **MongoDB** database driver developed for deno
 
+> The project is no longer maintained and has been relocated
+> [here](https://github.com/jiawei397/deno_mongo_schema).
+
 [![tag](https://img.shields.io/github/tag/manyuanrong/deno_mongo.svg)](https://github.com/manyuanrong/deno_mongo/releases)
 [![Build Status](https://github.com/manyuanrong/deno_mongo/workflows/ci/badge.svg?branch=main)](https://github.com/manyuanrong/deno_mongo/actions)
 [![license](https://img.shields.io/github/license/manyuanrong/deno_mongo.svg)](https://github.com/manyuanrong/deno_mongo)
@@ -115,10 +118,7 @@ await model.insertOne({
 Below is origin example:
 
 ```ts
-import {
-  Bson,
-  MongoClient,
-} from "https://deno.land/x/jw_mongo@v0.25.1/mod.ts";
+import { Bson, MongoClient } from "https://deno.land/x/jw_mongo@v0.25.1/mod.ts";
 
 const client = new MongoClient();
 
