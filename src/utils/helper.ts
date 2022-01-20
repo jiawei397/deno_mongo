@@ -14,15 +14,9 @@ export function closeConnection() {
 
 export function getDB(db: string): Promise<Database> {
   if (!connectedPromise) {
-    const arr = db.split("/");
-    if (db.endsWith("/")) {
-      arr.pop();
-    }
-    const dbName = arr.pop();
-    const url = arr.join("/");
-    connectedPromise = client.connect(url).then(() => {
-      console.info(`connected mongo：${yellow(url)}`);
-      return client.database(dbName!);
+    connectedPromise = client.connect(db).then(() => {
+      console.info(`connected mongo：${yellow(db)}`);
+      return client.database();
     });
   }
   return connectedPromise;
